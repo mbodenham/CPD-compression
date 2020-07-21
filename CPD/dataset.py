@@ -47,7 +47,7 @@ def make_dataset(directory, dataset_to_idx, extensions=None, is_valid_file=None)
         imgs_fnames = sorted([x for x in _imgs_fnames if is_valid_file(x)])
         gts_fnames = sorted([x for x in _gts_fnames if is_valid_file(x)])
         if len(imgs_fnames) != len(gts_fnames):
-            raise Exception('Number of images and ground truths are not equal. Number of; images: {}, ground turths: {}'.format(len(imgs), len(gts)))
+            raise Exception('Number of images and ground truths are not equal. Number of; images: {}, ground turths: {}'.format(len(imgs_fnames), len(gts_fnames)))
         for fnames in zip(imgs_fnames, gts_fnames):
             img, gt = fnames
             img_name = img[:img.find('.')]
@@ -85,7 +85,7 @@ def make_dataset_eval(directory, preds_directory, dataset_to_idx, extensions=Non
         preds_fnames = sorted([x for x in _preds_fnames if is_valid_file(x)])
         gts_fnames = sorted([x for x in _gts_fnames if is_valid_file(x)])
         if len(preds_fnames) != len(gts_fnames):
-            raise Exception('Number of images and ground truths are not equal. Number of; images: {}, ground turths: {}'.format(len(preds), len(gts)))
+            raise Exception('Number of images and ground truths are not equal. Number of; images: {}, ground turths: {}'.format(len(preds_fnames), len(gts_fnames)))
         for fnames in zip(preds_fnames, gts_fnames):
             pred, gt = fnames
             pred_name = pred[:pred.find('.')]
