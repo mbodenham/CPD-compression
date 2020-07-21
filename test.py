@@ -46,8 +46,8 @@ gt_transform = transforms.Compose([
 if args.time:
     model.eval()
     with torch.no_grad():
-        n = 1000
-        input = torch.rand([n, 1, 3, args.imgres, args.imgres]).to(device)
+        n = 100
+        input = torch.rand([1, n, 3, args.imgres, args.imgres]).to(device)
         t0 = time.time()
         with torch.autograd.profiler.profile() as prof:
             for img in input:
@@ -75,7 +75,7 @@ else:
             _, pred = model(img)
 
         pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)
-        pred = pred.sigmoid().data.cpu()
+        pred = pred.data.cpu()
 
         save_path = './results/{}/{}/'.format(model.name, dataset[0])
         if not os.path.exists(save_path):
