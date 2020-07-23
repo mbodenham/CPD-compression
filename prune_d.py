@@ -2,12 +2,12 @@ import torch
 import distiller
 import pandas as pd
 
-from CPD import CPD, CPD_darknet19
+import CPD
 
 device = torch.device('cuda')
 state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
 
-model = CPD_darknet19().to(device)
+model = CPD.load_model(args.model).to(device)
 model.load_state_dict(state_dict)
 
 df = distiller.weights_sparsity_summary(model, True)

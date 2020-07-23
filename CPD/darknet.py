@@ -379,7 +379,7 @@ class Darknet19_A(nn.Module):
         conv5_1.add_module('relu5_1_3', nn.LeakyReLU(0.1, inplace=True))
         self.conv5_1 = conv5_1
 
-        weights = torch.load('darknet19.pth')
+        weights = torch.load('./CPD/darknet19_weights.pth')
         self._initialize_weights(weights)
 
     def forward(self, x):

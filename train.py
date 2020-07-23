@@ -5,12 +5,12 @@ import torch.utils.tensorboard  as tensorboard
 import os, argparse
 from datetime import datetime
 
-from CPD import CPD, CPD_darknet19, CPD_darknet19_A_HA, ImageGroundTruthFolder
+import CPD
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', default='./datasets/train', help='path to datasets, default = ./datasets/train')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
-parser.add_argument('--model', default='CPD_darknet19', choices=['CPD', 'CPD_darknet19', 'CPD_darknet19_A_HA'], help='chose model, default = CPD_darknet19')
+parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--epoch', type=int, default=100, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
@@ -54,27 +54,20 @@ def train(train_loader, model, optimizer, epoch, writer):
         if step % 100 == 0 or step == total_steps:
             print('{} Epoch [{:03d}/{:03d}], Step [{:04d}/{:04d}], Loss: {:.4f}'.
                   format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, step, total_steps, loss.data))
-        if step % 500 == 0 or step == total_steps:
+        if step == 1 or step % 500 == 0 or step == total_steps:
             add_image(imgs, gts, preds, global_step, writer)
 
     save_path = 'ckpts/{}/'.format(model.name)
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    if epoch % 5 == 0:
-        torch.save(model.state_dict(), '{}{}.pth.{:03d}'.format(save_path, model.name, epoch))
+    # if epoch % 5 == 0:
+    #     torch.save(model.state_dict(), '{}{}.pth.{:03d}'.format(save_path, model.name, epoch))
+    torch.save(model.state_dict(), '{}{}.pth'.format(save_path, model.name))
 
 device = torch.device(args.device)
 print('Device: {}'.format(device))
 
-if args.model == 'CPD':
-    model = CPD().to(device)
-elif args.model == 'CPD_darknet19':
-    model = CPD_darknet19().to(device)
-elif args.model == 'CPD_darknet19_A_HA':
-    model = CPD_darknet19_A_HA().to(device)
-else:
-    print(arg.model, 'does not exist')
-    exit()
+model = CPD.load_model(args.model).to(device)
 
 params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print('{}\t{}'.format(model.name, params))
@@ -89,7 +82,7 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
-dataset = ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
+dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 writer = tensorboard.SummaryWriter(os.path.join('logs', model.name, datetime.now().strftime('%Y%m%d-%H%M%S')))
 print('Dataset loaded successfully')

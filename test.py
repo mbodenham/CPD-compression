@@ -8,12 +8,12 @@ import time
 import numpy as np
 import pdb, os, argparse
 
-from CPD import CPD, CPD_darknet19, ImageGroundTruthFolder
+import CPD
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', type=str, default='./datasets/test', help='path to datasets, default = ./datasets/test')
 parser.add_argument('--save_path', type=str, default='./results', help='path to save results, default = ./results')
-parser.add_argument('--model', default='CPD_darknet19', choices=['CPD', 'CPD_darknet19'], help='chose model, default = CPD_darknet19')
+parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--pth', type=str, default='CPD_darknet19.pth', help='model filename, default = CPD_darknet19.pth')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
@@ -23,13 +23,7 @@ args = parser.parse_args()
 device = torch.device(args.device)
 print('Device: {}'.format(device))
 
-if args.model == 'CPD':
-    model = CPD().to(device)
-elif args.model == 'CPD_darknet19':
-    model = CPD_darknet19().to(device)
-else:
-    print(arg.model, 'does not exist')
-    exit()
+model = CPD.load_model(args.model).to(device)
 
 model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
 model.eval()
@@ -61,7 +55,7 @@ if args.time:
     print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
 else:
-    dataset = ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
+    dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     for pack in test_loader:
@@ -75,7 +69,7 @@ else:
             _, pred = model(img)
 
         pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)
-        pred = pred.data.cpu()
+        pred = pred.sigmoid().data.cpu()
 
         save_path = './results/{}/{}/'.format(model.name, dataset[0])
         if not os.path.exists(save_path):
