@@ -5,12 +5,12 @@ import torch.utils.tensorboard  as tensorboard
 import os, argparse
 from datetime import datetime
 
-from CPD import CPD, CPD_darknet19, ImageGroundTruthFolder
+from CPD import CPD, CPD_darknet19, CPD_darknet19_A_HA, ImageGroundTruthFolder
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', default='./datasets/train', help='path to datasets, default = ./datasets/train')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
-parser.add_argument('--model', default='CPD_darknet19', choices=['CPD', 'CPD_darknet19'], help='chose model, default = CPD_darknet19')
+parser.add_argument('--model', default='CPD_darknet19', choices=['CPD', 'CPD_darknet19', 'CPD_darknet19_A_HA'], help='chose model, default = CPD_darknet19')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--epoch', type=int, default=100, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
@@ -70,6 +70,8 @@ if args.model == 'CPD':
     model = CPD().to(device)
 elif args.model == 'CPD_darknet19':
     model = CPD_darknet19().to(device)
+elif args.model == 'CPD_darknet19_A_HA':
+    model = CPD_darknet19_A_HA().to(device)
 else:
     print(arg.model, 'does not exist')
     exit()

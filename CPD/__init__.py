@@ -104,4 +104,42 @@ class CPD_darknet19(nn.Module):
         x5_2 = self.rfb5_2(x5_2)
         detection = self.agg2(x5_2, x4_2, x3_2)
 
-        return self.upsample(attention).sigmoid(), self.upsample(detection).sigmoid()
+        return self.upsample(attention), self.upsample(detection)
+
+class CPD_darknet19_A_HA(nn.Module):
+    def __init__(self, channel=32):
+        super(CPD_darknet19_A_HA, self).__init__()
+        self.name = 'CPD_darknet19_A_HA'
+        self.darknet = Darknet19()
+        self.rfb3_1 = RFB(128, channel)
+        self.rfb4_1 = RFB(256, channel)
+        self.rfb5_1 = RFB(512, channel)
+        self.agg1 = aggregation(channel)
+
+        self.HA = HA(HA_out=True)
+        self.upsample = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False)
+        modules = [self.darknet, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1, self.HA, self.upsample]
+        modules_names = ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1', 'HA', 'upsample']
+        print('Parameters')
+        for module, name in zip(modules, modules_names):
+            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+            print('{}\t{}'.format(name, params))
+
+    def forward(self, x):
+        x1 = self.darknet.conv1(x)
+        x2 = self.darknet.conv2(x1)
+        x3 = self.darknet.conv3(x2)
+
+        x3_1 = x3
+        x4_1 = self.darknet.conv4_1(x3_1)
+        x5_1 = self.darknet.conv5_1(x4_1)
+        x3_1 = self.rfb3_1(x3_1)
+        x4_1 = self.rfb4_1(x4_1)
+        x5_1 = self.rfb5_1(x5_1)
+        attention = self.agg1(x5_1, x4_1, x3_1)
+
+        HA = self.HA(attention.sigmoid(), x3)
+        print(attention.shape)
+        print(HA.shape)
+
+        return self.upsample(HA)

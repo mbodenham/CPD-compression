@@ -25,17 +25,21 @@ def min_max_norm(in_):
 
 class HA(nn.Module):
     # holistic attention module
-    def __init__(self):
+    def __init__(self, HA_out=False):
         super(HA, self).__init__()
         gaussian_kernel = np.float32(gkern(31, 4))
         gaussian_kernel = gaussian_kernel[np.newaxis, np.newaxis, ...]
         self.gaussian_kernel = Parameter(torch.from_numpy(gaussian_kernel))
+        self.HA_out = HA_out
 
     def forward(self, attention, x):
         soft_attention = F.conv2d(attention, self.gaussian_kernel, padding=15)
         soft_attention = min_max_norm(soft_attention)
-        x = torch.mul(x, soft_attention.max(attention))
-        return x
+        if self.HA_out:
+            return soft_attention
+        else:
+            x = torch.mul(x, soft_attention.max(attention))
+            return x
 
 class RFB(nn.Module):
     def __init__(self, in_channel, out_channel):

@@ -6,8 +6,9 @@ from CPD import CPD, CPD_darknet19
 
 device = torch.device('cuda')
 state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
-model.load_state_dict(state_dict)
+
 model = CPD_darknet19().to(device)
+model.load_state_dict(state_dict)
 
 df = distiller.weights_sparsity_summary(model, True)
 df.to_csv('CPD_darknet19.sparsity.csv')
