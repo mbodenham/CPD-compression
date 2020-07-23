@@ -1,18 +1,20 @@
 import torch
 import distiller
+import pandas as pd
 
 from CPD import CPD, CPD_darknet19
 
 device = torch.device('cuda')
 state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
-model = CPD().to(device)
+model.load_state_dict(state_dict)
+model = CPD_darknet19().to(device)
 
 df = distiller.weights_sparsity_summary(model, True)
-print(df)
+df.to_csv('CPD_darknet19.sparsity.csv')
 
-t, total = distiller.weights_sparsity_tbl_summary(model, True)
+t, total, _ = distiller.weights_sparsity_tbl_summary(model, True)
 print(t)
-print(total)
+print('Global sparsity:', total)
 
 #convs = []
 #for name, module in model.named_modules():
