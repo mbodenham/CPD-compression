@@ -72,7 +72,8 @@ else:
             _, pred = model(img)
 
         if args.eval:
-            eval.run(pred, gt, dataset)
+            gt.to(device)
+            eval.run(pred.sigmoid(), gt, dataset)
 
         if args.save_path:
             pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)

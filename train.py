@@ -1,3 +1,4 @@
+#ssh -L 16006:127.0.0.1:16006 mb2775@ogg.cs.bath.ac.uk
 import torch
 import torchvision.transforms as transforms
 import torch.utils.tensorboard  as tensorboard
@@ -24,7 +25,7 @@ def train(train_loader, model, optimizer, epoch, writer):
     def add_image(imgs, gts, preds, step, writer):
         writer.add_image('Image', imgs[-1], step)
         writer.add_image('Groundtruth', gts[-1], step)
-        writer.add_image('Prediction', preds[-1], step)
+        writer.add_image('Prediction', preds[-1].sigmoid(), step)
 
     total_steps = len(train_loader)
     CE = torch.nn.BCEWithLogitsLoss()

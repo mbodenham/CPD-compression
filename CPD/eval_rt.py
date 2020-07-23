@@ -1,5 +1,6 @@
 ## https://github.com/Hanqer/Evaluate-SOD/blob/master/evaluator.py
 
+import csv
 import os
 import time
 
@@ -18,19 +19,20 @@ class Eval():
         self.maxF = {ds_name: [] for ds_name in self.datasets}
         self.S = {ds_name: [] for ds_name in self.datasets}
         self.metrics = {ds_name: {} for ds_name in self.datasets}
+        print(self.metrics)
+        print(self.datasets)
 
     def run(self, pred, gt, dataset):
-
         self.MAE(pred, gt, dataset)
         self.fmeasure(pred, gt, dataset)
         self.smeasure(pred, gt, dataset)
 
-    def result(self, print=False):
+    def results(self):
         for dataset in self.datasets:
             self.metrics[dataset]['MAE'] = np.mean(self.mae[dataset])
-            self.metrics[dataset]['avgF'] = np.mean(avgF[dataset])
-            self.metrics[dataset]['maxF'] = np.mean(maxF[dataset])
-            self.metrics[dataset]['S'] = np.nanmean(S[dataset])
+            self.metrics[dataset]['avgF'] = np.mean(self.avgF[dataset])
+            self.metrics[dataset]['maxF'] = np.mean(self.maxF[dataset])
+            self.metrics[dataset]['S'] = np.nanmean(self.S[dataset])
 
         if print:
             header = []
@@ -41,10 +43,11 @@ class Eval():
                 header.append('')
             metrics = ['MAE', 'avgF', 'maxF', 'S'] * 4
             results = []
-            for dataset in self.metrics:
-                for m, r in results[dataset].items():
-                    result.append(r)
-            filename = 'metric_{}.csv'.format(self.model_name)
+            for dataset in self.metrics.values():
+                for result in dataset.values():
+                    results.append(result)
+
+            filename = 'metrics_{}.csv'.format(self.model_name)
             with open(filename, 'w') as outfile:
                 writer = csv.writer(outfile)
                 writer.writerow(header)

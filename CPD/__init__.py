@@ -157,7 +157,7 @@ class CPD_darknet19_A_HA(nn.Module):
         x5_1 = self.rfb5_1(x5_1)
         attention = self.agg1(x5_1, x4_1, x3_1)
 
-        HA = self.HA(attention.sigmoid(), x3)
+        HA = self.HA(attention, x3)
 
         return self.upsample(HA)
 
