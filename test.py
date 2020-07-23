@@ -15,7 +15,7 @@ parser.add_argument('--datasets_path', type=str, default='./datasets/test', help
 parser.add_argument('--save_path', type=str, default=False, help='path to save results, default = ./results')
 parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--pth', type=str, default='CPD_darknet19.pth', help='model filename, default = CPD_darknet19.pth')
-parser.add_argument('--device', default='cpu', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
+parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--time', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
@@ -25,7 +25,7 @@ device = torch.device(args.device)
 print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
-
+print(args.pth)
 model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
 model.eval()
 print('Loaded:', model.name)
@@ -84,5 +84,5 @@ else:
 
             filename = '{}{}.png'.format(save_path, img_name[0])
             utils.save_image(pred,  filename)
-    if args.eval():
+    if args.eval:
         print(eval.results())
