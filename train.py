@@ -69,9 +69,6 @@ print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
 
-params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print('{}\t{}'.format(model.name, params))
-
 optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
 transform = transforms.Compose([

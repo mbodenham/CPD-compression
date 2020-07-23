@@ -12,12 +12,13 @@ import CPD
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', type=str, default='./datasets/test', help='path to datasets, default = ./datasets/test')
-parser.add_argument('--save_path', type=str, default='./results', help='path to save results, default = ./results')
+parser.add_argument('--save_path', type=str, default=False, help='path to save results, default = ./results')
 parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--pth', type=str, default='CPD_darknet19.pth', help='model filename, default = CPD_darknet19.pth')
-parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
+parser.add_argument('--device', default='cpu', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--time', action='store_true', default=False)
+parser.add_argument('--eval', action='store_true', default=False)
 args = parser.parse_args()
 
 device = torch.device(args.device)
@@ -36,6 +37,8 @@ transform = transforms.Compose([
 gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
+
+eval = CPD.Eval(args.datasets_path, model.name)
 
 if args.time:
     model.eval()
@@ -59,7 +62,7 @@ else:
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     for pack in test_loader:
-        img, _, dataset, img_name, img_res = pack
+        img, gt, dataset, img_name, img_res = pack
         print('{} - {}'.format(dataset[0], img_name[0]))
         img = img.to(device)
 
@@ -68,12 +71,18 @@ else:
         else:
             _, pred = model(img)
 
-        pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)
-        pred = pred.sigmoid().data.cpu()
+        if args.eval:
+            eval.run(pred, gt, dataset)
 
-        save_path = './results/{}/{}/'.format(model.name, dataset[0])
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+        if args.save_path:
+            pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)
+            pred = pred.sigmoid().data.cpu()
 
-        filename = '{}{}.png'.format(save_path, img_name[0])
-        utils.save_image(pred,  filename)
+            save_path = './results/{}/{}/'.format(model.name, dataset[0])
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+
+            filename = '{}{}.png'.format(save_path, img_name[0])
+            utils.save_image(pred,  filename)
+    if args.eval():
+        print(eval.results())

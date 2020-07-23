@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from .darknet import Darknet19, Darknet19_A
 from .evaluate import Eval_thread
+from .eval_rt import Eval
 from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB
 from .vgg import B2_VGG
@@ -10,17 +11,20 @@ from .vgg import B2_VGG
 models = ['CPD', 'CPD_darknet19', 'CPD_darknet19_A', 'CPD_darknet19_A_HA']
 
 def load_model(model):
-    if model == 'CPD':
-        return CPD()
+    if model not in models:
+        raise ValueError('{} does not exist'.format(model))
+    elif model == 'CPD':
+        model = CPD()
     elif model == 'CPD_darknet19':
-        return CPD_darknet19()
+        model = CPD_darknet19()
     elif model == 'CPD_darknet19_A':
-        return CPD_darknet19_A()
+        model = CPD_darknet19_A()
     elif model == 'CPD_darknet19_A_HA':
-        return CPD_darknet19_A_HA()
-    else:
-        print(model, 'does not exist')
-        exit()
+        model = CPD_darknet19_A_HA()
+
+    params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print('{}\t{}'.format(model.name, params))
+    return model
 
 class CPD(nn.Module):
     def __init__(self, channel=32):
