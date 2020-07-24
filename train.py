@@ -33,7 +33,7 @@ def train(train_loader, model, optimizer, epoch, writer):
     for step, pack in enumerate(train_loader, start=1):
         global_step = (epoch-1) * total_steps + step
         optimizer.zero_grad()
-        imgs, gts, _, _, _ = pack
+        imgs, gts, _, _, _, _ = pack
         imgs = imgs.to(device)
         gts = gts.to(device)
         if '_A' in model.name:

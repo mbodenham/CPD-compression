@@ -177,14 +177,16 @@ class DatasetFolder(VisionDataset):
         """
         img_path, gt_path, dataset, img_name = self.samples[index]
         sample = self.loader(img_path)
+        orig_img = sample
         target = self.loader(gt_path)
         img_res = tuple(sample.size)
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
             target = self.target_transform(target)
+            orig_img = self.target_transform(orig_img)
 
-        return sample, target, dataset, img_name, img_res
+        return sample, target, dataset, img_name, img_res, orig_img
 
     def __len__(self):
         return len(self.samples)

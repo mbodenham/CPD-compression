@@ -1,5 +1,6 @@
 ## https://github.com/Hanqer/Evaluate-SOD/blob/master/evaluator.py
 
+import csv
 import os
 import time
 
@@ -8,140 +9,83 @@ import torch
 from torchvision import transforms
 
 
-class Eval_thread():
-    def __init__(self, dir, loader, method, dataset, output_dir):
-        self.loader = loader
-        self.method = method
-        self.dataset = dataset
-        self.datasets = [d.name for d in os.scandir(dir) if d.is_dir()]
-        print(self.datasets)
+class Eval():
+    def __init__(self, dataset_dir, model_name):
+        self.model_name = model_name
+        self.datasets = [d.name for d in os.scandir(dataset_dir) if d.is_dir()]
+        print('Datasets', self.datasets)
+        self.mae = {ds_name: [] for ds_name in self.datasets}
+        self.avgF = {ds_name: [] for ds_name in self.datasets}
+        self.maxF = {ds_name: [] for ds_name in self.datasets}
+        self.S = {ds_name: [] for ds_name in self.datasets}
         self.metrics = {ds_name: {} for ds_name in self.datasets}
 
-    def run(self):
-        start_time = time.time()
-        self.MAE()
-        self.fmeasure()
-        self.smeasure()
+    def run(self, pred, gt, dataset):
+        self.MAE(pred, gt, dataset)
+        self.fmeasure(pred, gt, dataset)
+        self.smeasure(pred, gt, dataset)
+
+    def results(self):
+        for dataset in self.datasets:
+            self.metrics[dataset]['MAE'] = np.mean(self.mae[dataset])
+            self.metrics[dataset]['avgF'] = np.mean(self.avgF[dataset])
+            self.metrics[dataset]['maxF'] = np.mean(self.maxF[dataset])
+            self.metrics[dataset]['S'] = np.nanmean(self.S[dataset])
+
+        if print:
+            header = []
+            for dataset in self.datasets:
+                header.append(dataset)
+                header.append('')
+                header.append('')
+                header.append('')
+            metrics = ['MAE', 'avgF', 'maxF', 'S'] * len(self.datasets)
+            results = []
+            for dataset in self.metrics.values():
+                for result in dataset.values():
+                    results.append(result)
+
+            filename = 'metrics_{}.csv'.format(self.model_name)
+            with open(filename, 'w') as outfile:
+                writer = csv.writer(outfile)
+                writer.writerow(header)
+                writer.writerow(metrics)
+                writer.writerow(results)
         return self.metrics
 
-    def MAE(self):
-        print('MAE')
-        mae = {ds_name: [] for ds_name in self.datasets}
+    def MAE(self, pred, gt, dataset):
         with torch.no_grad():
-            for sample in self.loader:
-                pred, gt, dataset, img_name, _ = sample
-                if pred.shape != gt.shape:
-                    print(dataset, img_name)
-                    continue
-                if torch.cuda.is_available():
-                    pred = pred.cuda()
-                    gt = gt.cuda()
-                mae[dataset[0]].append(torch.abs(pred - gt).mean().cpu().numpy())
+            self.mae[dataset[0]].append(torch.abs(pred - gt).mean().cpu().numpy())
 
-            for d in self.datasets:
-                self.metrics[d]['MAE'] = np.mean(mae[d])
-            return self.metrics
-
-    def fmeasure(self):
-        print('F-measure')
+    def fmeasure(self, pred, gt, dataset):
         beta2 = 0.3
-        avgF = {ds_name: [] for ds_name in self.datasets}
-        maxF = {ds_name: [] for ds_name in self.datasets}
         with torch.no_grad():
-            for sample in self.loader:
-                pred, gt, dataset, img_name, _ = sample
-                if pred.shape != gt.shape:
-                    print(dataset, img_name)
-                    continue
-                if torch.cuda.is_available():
-                    pred = pred.cuda()
-                    gt = gt.cuda()
-                prec, recall = self._eval_pr(pred, gt, 255)
-                f_score = ((1 + beta2) * prec * recall) / (beta2 * prec + recall)
-                f_score[f_score != f_score] = 0 # for Nan
-                avgF[dataset[0]].append(torch.mean(f_score).cpu().numpy())
-                maxF[dataset[0]].append(self._eval_fmax(prec, recall, beta2).cpu())
-            for d in self.datasets:
-                self.metrics[d]['avgF'] = np.mean(avgF[d])
-                self.metrics[d]['maxF'] = np.mean(maxF[d])
-            return self.metrics
+            prec, recall = self._eval_pr(pred, gt, 255)
+            f_score = ((1 + beta2) * prec * recall) / (beta2 * prec + recall)
+            f_score[f_score != f_score] = 0 # for Nan
+            self.avgF[dataset[0]].append(torch.mean(f_score).cpu().numpy())
+            self.maxF[dataset[0]].append(self._eval_fmax(prec, recall, beta2).cpu())
 
-    def Eval_Emeasure(self):
-        print('eval[EMeasure]:{} dataset with {} method.'.format(self.dataset, self.method))
-        avg_e, img_num = 0.0, 0.0
-        with torch.no_grad():
-            trans = transforms.Compose([transforms.ToTensor()])
-            scores = torch.zeros(255)
-            if self.cuda:
-                scores = scores.cuda()
-            for sample in self.loader:
-                pred, gt, dataset, img_name, _ = sample
-                if pred.size != gt.size:
-                    print(dataset, img_name)
-                    continue
-                if self.cuda:
-                    pred = trans(pred).cuda()
-                    gt = trans(gt).cuda()
-                else:
-                    pred = trans(pred)
-                    gt = trans(gt)
-                scores += self._eval_e(pred, gt, 255)
-                img_num += 1.0
 
-            scores /= img_num
-            return scores.max().item()
-
-    def smeasure(self):
-        print('S-measure')
+    def smeasure(self, pred, gt, dataset):
         alpha = 0.5
-        S = {ds_name: [] for ds_name in self.datasets}
+
         with torch.no_grad():
-            for sample in self.loader:
-                pred, gt, dataset, img_name, _ = sample
-                if pred.shape != gt.shape:
-                    print(dataset, img_name)
-                    continue
-                if torch.cuda.is_available():
-                    pred = pred.cuda()
-                    gt = gt.cuda()
-                y = gt.mean()
-                if y == 0:
-                    x = pred.mean()
-                    Q = 1.0 - x
-                elif y == 1:
-                    x = pred.mean()
-                    Q = x
-                else:
-                    gt[gt>=0.5] = 1
-                    gt[gt<0.5] = 0
-                    Q = alpha * self._S_object(pred, gt) + (1-alpha) * self._S_region(pred, gt)
-                    if Q.item() < 0:
-                        Q = torch.FloatTensor([0.0])
+            y = gt.mean()
+            if y == 0:
+                x = pred.mean()
+                Q = 1.0 - x
+            elif y == 1:
+                x = pred.mean()
+                Q = x
+            else:
+                gt[gt>=0.5] = 1
+                gt[gt<0.5] = 0
+                Q = alpha * self._S_object(pred, gt) + (1-alpha) * self._S_region(pred, gt)
+                if Q.item() < 0:
+                    Q = torch.FloatTensor([0.0])
 
-                S[dataset[0]].append(Q.cpu().numpy())
-            for d in self.datasets:
-                self.metrics[d]['S'] = np.nanmean(S[d])
-            return self.metrics
-
-    def LOG(self, output):
-        with open(self.logfile, 'a') as f:
-            f.write(output)
-
-    def _eval_e(self, y_pred, y, num):
-        if self.cuda:
-            score = torch.zeros(num).cuda()
-            thlist = torch.linspace(0, 1 - 1e-10, num).cuda()
-        else:
-            score = torch.zeros(num)
-            thlist = torch.linspace(0, 1 - 1e-10, num)
-        for i in range(num):
-            y_pred_th = (y_pred >= thlist[i]).float()
-            fm = y_pred_th - y_pred_th.mean()
-            gt = y - y.mean()
-            align_matrix = 2 * gt * fm / (gt * gt + fm * fm + 1e-20)
-            enhanced = ((align_matrix + 1) * (align_matrix + 1)) / 4
-            score[i] = torch.sum(enhanced) / (y.numel() - 1 + 1e-20)
-        return score
+            self.S[dataset[0]].append(Q.cpu().numpy())
 
     def _eval_pr(self, y_pred, y, num):
         if torch.cuda.is_available():
@@ -155,13 +99,6 @@ class Eval_thread():
             tp = (y_temp * y).sum()
             prec[i], recall[i] = tp / (y_temp.sum() + 1e-20), tp / (y.sum() + 1e-20)
         return prec, recall
-
-    # def _eval_fmax(self, y_pred, y):
-    #     t_a = 2 * torch.mean(y_pred)
-    #     y_temp = (y_pred >= t_a).float()
-    #     tp = (y_temp * y).sum()
-    #     prec, recall = tp / (y_temp.sum() + 1e-20), tp / (y.sum() + 1e-20)
-    #     return prec, recall
 
     def _eval_fmax(self, prec, recall, beta2):
         idx = torch.argmax(prec + recall)
