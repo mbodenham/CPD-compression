@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 
 from .darknet import Darknet19, Darknet19_A
-from .evaluate import Eval_thread
-from .eval_rt import Eval
+from .evaluate import Eval
 from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB
 from .vgg import B2_VGG
