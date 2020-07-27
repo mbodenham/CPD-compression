@@ -53,13 +53,13 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
             writer.add_scalar('Loss/Attention Loss', float(att_loss), global_step)
             writer.add_scalar('Loss/Detection Loss', float(det_loss),global_step)
             writer.add_scalar('Loss/Total Loss', float(loss), global_step)
-        loss = compression_scheduler.before_backward_pass(epoch, train_step, total_steps, loss,
+        loss = compression_scheduler.before_backward_pass(epoch, step, total_steps, loss,
                                                                 optimizer=optimizer)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
-        compression_scheduler.before_parameter_optimization(epoch, train_step, total_steps, optimizer)
+        compression_scheduler.before_parameter_optimization(epoch, step, total_steps, optimizer)
         optimizer.step()
-        compression_scheduler.on_minibatch_end(epoch, train_step, total_steps, optimizer)
+        compression_scheduler.on_minibatch_end(epoch, step, total_steps, optimizer)
 
 
         if step % 100 == 0 or step == total_steps:
@@ -68,23 +68,13 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
         if step == 1 or step % 500 == 0 or step == total_steps:
             add_image(imgs, gts, preds, global_step, writer)
 
-    save_path = 'ckpts/{}/'.format(model.name)
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    # if epoch % 5 == 0:
-    #     torch.save(model.state_dict(), '{}{}.pth.{:03d}'.format(save_path, model.name, epoch))
-    torch.save(model.state_dict(), '{}{}.pth'.format(save_path, model.name))
 
 device = torch.device(args.device)
 print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
-
-optimizer = torch.optim.Adam(model.parameters(), args.lr)
-
-compression_scheduler = distiller.file_config(model, optimizer, args.scheduler, None, None)
-
 model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
+optimizer = torch.optim.SGD(model.parameters(), args.lr)
 
 transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
@@ -98,9 +88,21 @@ dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, ta
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 writer = tensorboard.SummaryWriter(os.path.join('logs', model.name, datetime.now().strftime('%Y%m%d-%H%M%S')))
 print('Dataset loaded successfully')
+
+compression_scheduler = distiller.file_config(model, optimizer, args.scheduler, None, None)
+
 for epoch in range(1, args.epoch+1):
+
+    save_path = 'ckpts/{}/'.format(model.name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    df,_ = distiller.weights_sparsity_summary(model, True)
+    df.to_csv('{}{}.sparsity.csv'.format(save_path, model.name))
+    df = distiller.model_performance_summary(model, torch.rand([1, 3, 352, 352]), 1)
+    df.to_csv('{}{}.mac.csv'.format(save_path, model.name))
+
     compression_scheduler.on_epoch_begin(epoch)
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
-    lr_lambda = lambda epoch: args.decay_rate ** (epoch // args.decay_epoch)
-    scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lr_lambda)
     train(train_loader, model, optimizer, epoch, writer, compression_scheduler)
+    compression_scheduler.on_epoch_end(epoch)
+    torch.save(model.state_dict(), '{}{}.pth'.format(save_path, model.name))
