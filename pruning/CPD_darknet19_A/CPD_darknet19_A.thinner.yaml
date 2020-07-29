@@ -78,81 +78,102 @@
 version: 1
 
 pruners:
+  darknet_pruner_layer1:
+    class: GradientRankedFilterPruner_AGP
+    initial_sparsity : 0.1
+    final_sparsity: 0.60
+    group_type: Filters
+    weights: [darknet.conv1.conv1_1.weight]
 
-  agp_pruner_85:
-    class: AutomatedGradualPruner
+  darknet_pruner_layer2:
+    class: GradientRankedFilterPruner_AGP
+    initial_sparsity : 0.1
+    final_sparsity: 0.50
+    group_type: Filters
+    weights: [darknet.conv2.conv2_1.weight
+              ]
+ 
+  darknet_pruner_layer3:
+    class: GradientRankedFilterPruner_AGP
     initial_sparsity : 0.01
-    final_sparsity: 0.85
-    weights: [darknet.conv1.conv1_1.weight,
-              darknet.conv2.conv2_1.weight,
-              darknet.conv3.conv3_1.weight,
+    final_sparsity: 0.30
+    group_type: Filters
+    weights: [darknet.conv3.conv3_1.weight,
               darknet.conv3.conv3_2.weight,
-              darknet.conv3.conv3_3.weight,
-              darknet.conv4_1.conv4_1_1.weight,
-              darknet.conv4_1.conv4_1_2.weight,
-              darknet.conv4_1.conv4_1_3.weight,
-              darknet.conv5_1.conv5_1_1.weight,
-              darknet.conv5_1.conv5_1_2.weight,
-              darknet.conv5_1.conv5_1_3.weight,
-              rfb3_1.branch0.0.weight,
-              rfb3_1.branch1.0.weight,
-              rfb3_1.branch1.1.weight,
-              rfb3_1.branch1.2.weight,
-              rfb3_1.branch1.3.weight,
-              rfb3_1.branch2.0.weight,
-              rfb3_1.branch2.1.weight,
-              rfb3_1.branch2.2.weight,
-              rfb3_1.branch2.3.weight,
-              rfb3_1.branch3.0.weight,
-              rfb3_1.branch3.1.weight,
-              rfb3_1.branch3.2.weight,
-              rfb3_1.branch3.3.weight,
-              rfb3_1.conv_cat.weight,
-              rfb3_1.conv_res.weight,
-              rfb4_1.branch0.0.weight,
-              rfb4_1.branch1.0.weight,
-              rfb4_1.branch1.1.weight,
-              rfb4_1.branch1.2.weight,
-              rfb4_1.branch1.3.weight,
-              rfb4_1.branch2.0.weight,
-              rfb4_1.branch2.1.weight,
-              rfb4_1.branch2.2.weight,
-              rfb4_1.branch2.3.weight,
-              rfb4_1.branch3.0.weight,
-              rfb4_1.branch3.1.weight,
-              rfb4_1.branch3.2.weight,
-              rfb4_1.branch3.3.weight,
-              rfb4_1.conv_cat.weight,
-              rfb4_1.conv_res.weight,
-              rfb5_1.branch0.0.weight,
-              rfb5_1.branch1.0.weight,
-              rfb5_1.branch1.1.weight,
-              rfb5_1.branch1.2.weight,
-              rfb5_1.branch1.3.weight,
-              rfb5_1.branch2.0.weight,
-              rfb5_1.branch2.1.weight,
-              rfb5_1.branch2.2.weight,
-              rfb5_1.branch2.3.weight,
-              rfb5_1.branch3.0.weight,
-              rfb5_1.branch3.1.weight,
-              rfb5_1.branch3.2.weight,
-              rfb5_1.branch3.3.weight,
-              rfb5_1.conv_cat.weight,
-              rfb5_1.conv_res.weight,
-              agg1.conv_upsample1.weight,
-              agg1.conv_upsample2.weight,
-              agg1.conv_upsample3.weight,
-              agg1.conv_upsample4.weight,
-              agg1.conv_upsample5.weight,
-              agg1.conv_concat2.weight,
-              agg1.conv_concat3.weight,
-              agg1.conv4.weight,
-              agg1.conv5.weight]
+              darknet.conv3.conv3_3.weight]
 
+  darknet_pruner_layer4:
+    class: GradientRankedFilterPruner_AGP
+    initial_sparsity : 0.01
+    final_sparsity: 0.20
+    group_type: Filters
+    weights: [darknet.conv3.conv3_3.weight,
+              darknet.conv4.conv4_1.weight,
+              darknet.conv4.conv4_2.weight,
+              darknet.conv4.conv4_3.weight
+              ] 
+
+  darknet_pruner_layer5:
+    class: GradientRankedFilterPruner_AGP
+    initial_sparsity : 0.01
+    final_sparsity: 0.20
+    group_type: Filters
+    weights: [darknet.conv5.conv5_1.weight,
+              darknet.conv5.conv5_2.weight,
+              darknet.conv5.conv5_3.weight
+              ]    
+                                      
+extensions:
+  net_thinner:
+      class: 'FilterRemover'
+      thinning_func_str: remove_filters
+      arch: 'vgg19'
+      dataset: 'sod'
+
+lr_schedulers:
+   exp_finetuning_lr:
+     class: ExponentialLR
+     gamma: 0.95
+     
 policies:
+policies:
+  - pruner:
+      instance_name : darknet_pruner_layer1
+    starting_epoch: 0
+    ending_epoch: 4
+    frequency: 2
 
   - pruner:
-     instance_name : agp_pruner_85
-    starting_epoch: 0
-    ending_epoch: 45
+      instance_name : darknet_pruner_layer2
+    starting_epoch: 4
+    ending_epoch: 8
+    frequency: 2
+    
+  - pruner:
+      instance_name : darknet_pruner_layer3
+    starting_epoch: 8
+    ending_epoch: 10
     frequency: 1
+    
+  - pruner:
+      instance_name : darknet_pruner_layer4
+    starting_epoch: 10
+    ending_epoch: 12
+    frequency: 1
+
+  - pruner:
+      instance_name : darknet_pruner_layer5
+    starting_epoch: 12
+    ending_epoch: 14
+    frequency: 1    
+    
+  - extension:
+      instance_name: net_thinner
+    epochs: [14]
+    
+  - lr_scheduler:
+      instance_name: exp_finetuning_lr
+    starting_epoch: 10
+    ending_epoch: 50
+    frequency: 1
+    
