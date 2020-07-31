@@ -541,14 +541,14 @@ class Darknet19_A_pruned(nn.Module):
     def __init__(self):
         super(Darknet19_A_pruned, self).__init__()
         self.conv1 = nn.Sequential()
-        self.conv1.add_module('conv1_1', nn.Conv2d(3, 13, 3, 1, 1, bias=False))
-        self.conv1.add_module('bn1_1', nn.BatchNorm2d(13))
+        self.conv1.add_module('conv1_1', nn.Conv2d(3, 10, 3, 1, 1, bias=False))
+        self.conv1.add_module('bn1_1', nn.BatchNorm2d(10))
         self.conv1.add_module('relu1_1', nn.LeakyReLU(0.1, inplace=True))
         # self.conv1 = conv1
 
         self.conv2 = nn.Sequential()
         self.conv2.add_module('maxpool1', nn.MaxPool2d(2, stride=2))
-        self.conv2.add_module('conv2_1', nn.Conv2d(13, 64, 3, 1, 1, bias=False))
+        self.conv2.add_module('conv2_1', nn.Conv2d(10, 64, 3, 1, 1, bias=False))
         self.conv2.add_module('bn2_1', nn.BatchNorm2d(64))
         self.conv2.add_module('relu2_1', nn.LeakyReLU(0.1, inplace=True))
         # self.conv2 = conv2
@@ -619,7 +619,7 @@ class Darknet19_A_pruned(nn.Module):
         #self.conv1.bn1_1.num_batches_tracked.data.copy_(weights[keys[i]])
         i+=1
 
-        self.conv2.conv2_1.weight.data.copy_(weights[keys[i]])
+        #self.conv2.conv2_1.weight.data.copy_(weights[keys[i]])
         i+=1
         self.conv2.bn2_1.weight.data.copy_(weights[keys[i]])
         i+=1

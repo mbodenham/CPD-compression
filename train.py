@@ -58,12 +58,12 @@ def train(train_loader, model, optimizer, epoch, writer):
         if step == 1 or step % 500 == 0 or step == total_steps:
             add_image(imgs, gts, preds, global_step, writer)
 
-    save_path = 'ckpts/{}/'.format(model.name)
+    save_path = os.path.join(save_dir, 'ckpts')
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     # if epoch % 5 == 0:
     #     torch.save(model.state_dict(), '{}{}.pth.{:03d}'.format(save_path, model.name, epoch))
-    torch.save(model.state_dict(), '{}{}.pth'.format(save_path, model.name))
+    torch.save(model.state_dict(), '{}/{}.pth'.format(save_path, model.name))
 
 device = torch.device(args.device)
 print('Device: {}'.format(device))
@@ -80,9 +80,12 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
+save_dir = os.path.join('training', model.name)
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
 dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-writer = tensorboard.SummaryWriter(os.path.join('logs', model.name, datetime.now().strftime('%Y%m%d-%H%M%S')))
+writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S')))
 print('Dataset loaded successfully')
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
