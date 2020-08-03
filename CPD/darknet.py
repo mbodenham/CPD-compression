@@ -547,14 +547,14 @@ class Darknet19_A_pruned(nn.Module):
         # self.conv1 = conv1
 
         self.conv2 = nn.Sequential()
-        self.conv2.add_module('maxpool1', nn.MaxPool2d(2, stride=2))
+        self.conv2.add_module('Avgpool1', nn.AvgPool2d(2, stride=2))
         self.conv2.add_module('conv2_1', nn.Conv2d(10, 64, 3, 1, 1, bias=False))
         self.conv2.add_module('bn2_1', nn.BatchNorm2d(64))
         self.conv2.add_module('relu2_1', nn.LeakyReLU(0.1, inplace=True))
         # self.conv2 = conv2
 
         self.conv3 = nn.Sequential()
-        self.conv3.add_module('maxpool2', nn.MaxPool2d(2, stride=2))
+        self.conv3.add_module('Avgpool2', nn.AvgPool2d(2, stride=2))
         self.conv3.add_module('conv3_1', nn.Conv2d(64, 128, 3, 1, 1, bias=False))
         self.conv3.add_module('bn3_1', nn.BatchNorm2d(128))
         self.conv3.add_module('relu3_1', nn.LeakyReLU(0.1, inplace=True))
@@ -567,7 +567,7 @@ class Darknet19_A_pruned(nn.Module):
         # self.conv3 = conv3
 
         self.conv4 = nn.Sequential()
-        self.conv4.add_module('maxpool4_1', nn.MaxPool2d(2, stride=2))
+        self.conv4.add_module('Avgpool4_1', nn.AvgPool2d(2, stride=2))
         self.conv4.add_module('conv4_1', nn.Conv2d(128, 256, 3, 1, 1, bias=False))
         self.conv4.add_module('bn4_1', nn.BatchNorm2d(256))
         self.conv4.add_module('relu4_1', nn.LeakyReLU(0.1, inplace=True))
@@ -580,7 +580,7 @@ class Darknet19_A_pruned(nn.Module):
         # self.conv4 = conv4
 
         self.conv5 = nn.Sequential()
-        self.conv5.add_module('maxpool5_1', nn.MaxPool2d(2, stride=2))
+        self.conv5.add_module('Avgpool5_1', nn.AvgPool2d(2, stride=2))
         self.conv5.add_module('conv5_1', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
         self.conv5.add_module('bn5_1', nn.BatchNorm2d(512))
         self.conv5.add_module('relu5_1', nn.LeakyReLU(0.1, inplace=True))

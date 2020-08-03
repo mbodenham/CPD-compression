@@ -129,7 +129,7 @@ class aggregation(nn.Module):
 
 class RFB_minimal(nn.Module):
     def __init__(self, in_channel, out_channel):
-        super(RFB, self).__init__()
+        super(RFB_minimal, self).__init__()
         self.relu = nn.ReLU(True)
         self.branch2 = nn.Sequential(
             nn.Conv2d(in_channel, out_channel, 1),

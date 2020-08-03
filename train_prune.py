@@ -72,11 +72,11 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
             add_image(imgs, gts, preds, global_step, writer)
 
 def test(test_loader, model, criterion, loggers=None, activations_collectors=None, args=None):
-    mae = np.zeros(len(train_loader))
-    losses = np.zeros(len(train_loader))
+    mae = np.zeros(len(test_loader))
+    losses = np.zeros(len(test_loader))
     model.eval()
     with torch.no_grad():
-        for step, pack in enumerate(train_loader):
+        for step, pack in enumerate(test_loader):
             imgs, gts, _, _, _, _ = pack
             imgs = imgs.to(device)
             gts = gts.to(device)

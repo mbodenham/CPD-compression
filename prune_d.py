@@ -5,13 +5,13 @@ import pandas as pd
 import CPD
 
 device = torch.device('cuda')
-state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
+state_dict = torch.load('training/CPD_darknet19_A_pruned/ckpts/CPD_darknet19_A_pruned.pth', map_location=torch.device(device))
 
-model = CPD.load_model(args.model).to(device)
+model = CPD.load_model('CPD_darknet19_A_pruned').to(device)
 model.load_state_dict(state_dict)
 
-df = distiller.weights_sparsity_summary(model, True)
-df.to_csv('CPD_darknet19.sparsity.csv')
+df, _ = distiller.weights_sparsity_summary(model, True)
+df.to_csv('CPD_darknet19_A_pruned.sparsity.csv')
 
 t, total, _ = distiller.weights_sparsity_tbl_summary(model, True)
 print(t)

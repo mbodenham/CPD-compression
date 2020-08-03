@@ -7,7 +7,7 @@ from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB, aggregation_minimal, RFB_minimal
 from .vgg import B2_VGG
 
-models = ['CPD', 'CPD_darknet19', 'CPD_darknet19_A', 'CPD_darknet19_A_pruned']
+models = ['CPD', 'CPD_darknet19', 'CPD_darknet19_A', 'CPD_darknet19_A_pruned', 'CPD_darknet19_A_minimal']
 
 def load_model(model):
     if model not in models:
@@ -20,6 +20,8 @@ def load_model(model):
         model = CPD_darknet19_A()
     elif model == 'CPD_darknet19_A_pruned':
         model = CPD_darknet19_A_pruned()
+    elif model == 'CPD_darknet19_A_minimal':
+        model = CPD_darknet19_A_minimal()
 
     params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('{}\t{}'.format(model.name, params))
@@ -177,7 +179,7 @@ class CPD_darknet19_A_minimal(nn.Module):
     def __init__(self, channel=32):
         super(CPD_darknet19_A_minimal, self).__init__()
         self.name = 'CPD_darknet19_A_minimal'
-        self.darknet = Darknet19_A_minimal()
+        self.darknet = Darknet19_A_pruned()
         self.reduce3 = nn.Conv2d(128, channel, 1)
         self.reduce4 = nn.Conv2d(256, channel, 1)
         self.rfb5 = RFB_minimal(512, channel)
@@ -195,7 +197,7 @@ class CPD_darknet19_A_minimal(nn.Module):
         x3, x4, x5 = self.darknet(x)
         x3 = self.reduce3(x3)
         x4 = self.reduce4(x4)
-        x5 = self.rfb5_1(x5)
+        x5 = self.rfb5(x5)
         attention = self.agg1(x5, x4, x3)
 
         return self.upsample(attention)
