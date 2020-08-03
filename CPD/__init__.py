@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 
-from .darknet import Darknet19, Darknet19_A, Darknet19_A_pruned
+from .darknet import Darknet19, Darknet19_A, Darknet19_A_pruned, Darknet19_A_pruned_extra
 from .evaluate import Eval
 from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB, aggregation_minimal, RFB_minimal
 from .vgg import B2_VGG
 
-models = ['CPD', 'CPD_darknet19', 'CPD_darknet19_A', 'CPD_darknet19_A_pruned', 'CPD_darknet19_A_minimal']
+models = ['CPD', 'CPD_darknet19', 'CPD_darknet19_A', 'CPD_darknet19_A_pruned', 'CPD_darknet19_A_minimal', 'CPD_darknet19_A_minimal_extra']
 
 def load_model(model):
     if model not in models:
@@ -22,6 +22,8 @@ def load_model(model):
         model = CPD_darknet19_A_pruned()
     elif model == 'CPD_darknet19_A_minimal':
         model = CPD_darknet19_A_minimal()
+    elif model == 'CPD_darknet19_A_minimal_extra':
+        model = CPD_darknet19_A_minimal_extra()
 
     params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('{}\t{}'.format(model.name, params))
@@ -182,6 +184,33 @@ class CPD_darknet19_A_minimal(nn.Module):
         self.darknet = Darknet19_A_pruned()
         self.reduce3 = nn.Conv2d(128, channel, 1)
         self.reduce4 = nn.Conv2d(256, channel, 1)
+        self.rfb5 = RFB_minimal(512, channel)
+        self.agg1 = aggregation_minimal(channel)
+
+        self.upsample = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False)
+        #modules = [self.darknet, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1, self.upsample]
+        #modules_names = ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1', 'upsample']
+        #print('Parameters')
+        #for module, name in zip(modules, modules_names):
+        #    params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+        #    print('{}\t{}'.format(name, params))
+
+    def forward(self, x):
+        x3, x4, x5 = self.darknet(x)
+        x3 = self.reduce3(x3)
+        x4 = self.reduce4(x4)
+        x5 = self.rfb5(x5)
+        attention = self.agg1(x5, x4, x3)
+
+        return self.upsample(attention)
+
+class CPD_darknet19_A_minimal_extra(nn.Module):
+    def __init__(self, channel=32):
+        super(CPD_darknet19_A_minimal_extra, self).__init__()
+        self.name = 'CPD_darknet19_A_minimal'
+        self.darknet = Darknet19_A_pruned()
+        self.reduce3 = nn.Conv2d(256, channel, 1)
+        self.reduce4 = nn.Conv2d(512, channel, 1)
         self.rfb5 = RFB_minimal(512, channel)
         self.agg1 = aggregation_minimal(channel)
 
