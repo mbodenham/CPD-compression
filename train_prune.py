@@ -72,9 +72,10 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
             add_image(imgs, gts, preds, global_step, writer)
 
 def test(test_loader, model, criterion, loggers=None, activations_collectors=None, args=None):
-    mae = np.zeros(len(test_loader))
+    s = np.zeros(len(test_loader))
     losses = np.zeros(len(test_loader))
     model.eval()
+    eval = CPD.Eval('./datasets/test_small/', model.name)
     with torch.no_grad():
         for step, pack in enumerate(test_loader):
             imgs, gts, _, _, _, _ = pack
@@ -83,9 +84,9 @@ def test(test_loader, model, criterion, loggers=None, activations_collectors=Non
             if '_A' in model.name:
                 preds = model(imgs)
                 loss = criterion(preds, gts)
-            mae[step] = torch.abs(preds.sigmoid() - gts).mean().cpu().detach().numpy()
+            s[step] = eval.smeasure(preds.sigmoid(), gts,'test')['test']
             losses[step] = loss
-    return mae.mean(), mae.mean(), losses.mean()
+    return s.mean(), s.mean(), losses.mean()
 
 def save_model_stats(model, save_path, name=None):
     if not os.path.exists(save_path):
@@ -193,7 +194,7 @@ if args.sensitivity_analysis:
                                                              sparsities=np.arange(0,1,0.05),
                                                              test_func=test_fnc,
                                                              group='filter')
-        distiller.sensitivities_to_png(sensitivity, 'sensitivity_{}.png'.format(fname))
+        #distiller.sensitivities_to_png(sensitivity, 'sensitivity_{}.png'.format(fname))
         distiller.sensitivities_to_csv(sensitivity, 'sensitivity_{}.csv'.format(fname))
     print('Complete')
     exit()
