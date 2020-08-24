@@ -30,14 +30,13 @@ def train(train_loader, model, optimizer, epoch, writer):
 
     def validate(val_loader, model, writer, global_step):
         model.eval()
-        eval = CPD.Eval('.datasets/val', model.name)
+        eval = CPD.Eval('./datasets/val', model.name)
         with torch.no_grad():
 
-            s = np.array(len(val_loader))
+            s = np.zeros(len(val_loader))
             val_loss = s.copy()
             for idx, pack in enumerate(val_loader):
                 img, gt, dataset, img_name, _, _ = pack
-                print('{} - {}'.format(dataset[0], img_name[0]))
                 img = img.to(device)
                 gt = gt.to(device)
 
@@ -48,8 +47,8 @@ def train(train_loader, model, optimizer, epoch, writer):
                 s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
                 val_loss[idx] = torch.nn.BCEWithLogitsLoss()(pred, gt)
 
-        writer.add_scalar('S-Measure', float(s.mean()), global_step)
-        writer.add_scalar('Loss/Validation', float(val_loss.mean()), global_step)
+        val_writer.add_scalar('S-Measure', float(s.mean()), global_step)
+        val_writer.add_scalar('Loss', float(val_loss.mean()), global_step)
         print('{} Epoch [{:03d}/{:03d}], S-Measure: {:.4f}'.
               format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, s.mean()))
 
@@ -65,7 +64,7 @@ def train(train_loader, model, optimizer, epoch, writer):
         if '_A' in model.name:
             preds = model(imgs)
             loss = CE(preds, gts)
-            writer.add_scalar('Loss/Training', float(loss), global_step)
+            writer.add_scalar('Loss', float(loss), global_step)
         else:
             atts, preds = model(imgs)
             att_loss = CE(atts, gts)
@@ -89,7 +88,7 @@ def train(train_loader, model, optimizer, epoch, writer):
         os.makedirs(save_path)
     # if epoch % 5 == 0:
     #     torch.save(model.state_dict(), '{}{}.pth.{:03d}'.format(save_path, model.name, epoch))
-    validate(val_loader, model, writer, global_step)
+    validate(val_loader, model, val_writer, global_step)
     torch.save(model.state_dict(), '{}/{}.pth'.format(save_path, model.name))
 
 device = torch.device(args.device)
@@ -112,9 +111,10 @@ if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-val_dataset = CPD.ImageGroundTruthFolder('.datasets/val', transform=transform, target_transform=gt_transform)
+val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
-writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S')))
+writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), train))
+val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), val))
 print('Dataset loaded successfully')
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
@@ -122,4 +122,3 @@ for epoch in range(1, args.epoch+1):
     lr_scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lr_lambda)
     train(train_loader, model, optimizer, epoch, writer)
     lr_scheduler.step()
-    validate(val_loader, model, writer)
