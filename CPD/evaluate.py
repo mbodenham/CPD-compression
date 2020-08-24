@@ -13,7 +13,6 @@ class Eval():
     def __init__(self, dataset_dir, model_name):
         self.model_name = model_name
         self.datasets = [d.name for d in os.scandir(dataset_dir) if d.is_dir()]
-        print('Datasets', self.datasets)
         self.mae = {ds_name: [] for ds_name in self.datasets}
         self.avgF = {ds_name: [] for ds_name in self.datasets}
         self.maxF = {ds_name: [] for ds_name in self.datasets}
