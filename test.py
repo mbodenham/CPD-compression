@@ -39,8 +39,13 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
-if args.eval:
-    eval = CPD.Eval(args.datasets_path, model.name)
+def get_pred(model, input):
+    if '_A' in model.name:
+        pred = model(input)
+    else:
+        _, pred = model(input)
+
+    return pred
 
 if args.time:
     model.eval()
@@ -49,18 +54,16 @@ if args.time:
         input = torch.rand([1, 3, args.imgres, args.imgres]).to(device)
         times = np.zeros(args.reps)
 
+        for warm_up in range(args.reps//2):
+            get_pred(model, input)
+
+
         with torch.autograd.profiler.profile() as prof:
-            if '_A' in model.name:
-                pred = model(input)
-            else:
-                _, pred = model(input)
+            get_pred(model, input)
 
         for rep in range(args.reps):
             t0 = time.time()
-            if '_A' in model.name:
-                pred = model(input)
-            else:
-                _, pred = model(input)
+            get_pred(model, input)
             times[rep] = time.time() - t0
 
         avg_t = np.mean(times)
@@ -69,38 +72,18 @@ if args.time:
     print('FPS', 1/avg_t)
     print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
-else:
+elif args.eval:
     dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+    eval = CPD.Eval(args.datasets_path, model.name)
 
-    for idx, pack in enumerate(test_loader):
-        img, gt, dataset, img_name, img_res, orig = pack
+    for pack in test_loader:
+        img, gt, dataset, img_name, _, _ = pack
         print('{} - {}'.format(dataset[0], img_name[0]))
         img = img.to(device)
+        gt = gt.to(device)
 
-        if '_A' in model.name:
-            pred = model(img)
-        else:
-            _, pred = model(img)
+        pred = get_pred(model, img)
+        eval.run(pred.sigmoid(), gt, dataset)
 
-        if args.eval:
-            gt = gt.to(device)
-            eval.run(pred.sigmoid(), gt, dataset)
-
-        if args.save_path and idx % 100 == 0:
-            save_path = './results/{}/{}/'.format(model.name, dataset[0])
-            if not os.path.exists(save_path):
-                os.makedirs(save_path)
-
-            grid_img = utils.make_grid(torch.cat((orig.cpu(), gt.cpu().repeat(1, 3, 1, 1), pred.sigmoid().cpu().repeat(1, 3, 1, 1))))
-            filename = '{}grid_{}.png'.format(save_path, img_name[0])
-            utils.save_image(grid_img,  filename)
-
-            # pred = F.interpolate(pred, size=img_res[::-1], mode='bilinear', align_corners=False)
-            # pred = pred.sigmoid().data.cpu()
-            #
-            # filename = '{}{}.png'.format(save_path, img_name[0])
-            # utils.save_image(pred,  filename)
-
-    if args.eval:
-        print(eval.results())
+    print(eval.results())

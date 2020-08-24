@@ -25,7 +25,6 @@ parser.add_argument('--batch_size', type=int, default=10, help='training batch s
 parser.add_argument('--clip', type=float, default=0.5, help='gradient clipping margin, default = 0.5')
 parser.add_argument('--decay_rate', type=float, default=0.1, help='decay rate of learning rate, default = 0.1')
 parser.add_argument('--decay_epoch', type=int, default=30, help='every n epochs decay learning rate,  default = 30')
-parser.add_argument('--sensitivity_analysis', action='store_true', default=False)
 args = parser.parse_args()
 
 def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=None):
@@ -71,23 +70,6 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
         if step == 1 or step % 500 == 0 or step == total_steps:
             add_image(imgs, gts, preds, global_step, writer)
 
-def test(test_loader, model, criterion, loggers=None, activations_collectors=None, args=None):
-    s = np.zeros(len(test_loader))
-    losses = np.zeros(len(test_loader))
-    model.eval()
-    eval = CPD.Eval('./datasets/test_small/', model.name)
-    with torch.no_grad():
-        for step, pack in enumerate(test_loader):
-            imgs, gts, _, _, _, _ = pack
-            imgs = imgs.to(device)
-            gts = gts.to(device)
-            if '_A' in model.name:
-                preds = model(imgs)
-                loss = criterion(preds, gts)
-            s[step] = eval.smeasure(preds.sigmoid(), gts,'test')['test']
-            losses[step] = loss
-    return s.mean(), s.mean(), losses.mean()
-
 def save_model_stats(model, save_path, name=None):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -119,85 +101,6 @@ gt_transform = transforms.Compose([
             transforms.ToTensor()])
 
 dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
-
-if args.sensitivity_analysis:
-    test_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
-    test_fnc = partial(test, test_loader=test_loader, criterion=torch.nn.BCEWithLogitsLoss())
-    params = [['darknet.conv1.conv1_1.weight',
-              'darknet.conv2.conv2_1.weight',
-              'darknet.conv3.conv3_1.weight',
-              'darknet.conv3.conv3_2.weight',
-              'darknet.conv3.conv3_3.weight',
-              'darknet.conv4.conv4_1.weight',
-              'darknet.conv4.conv4_2.weight',
-              'darknet.conv4.conv4_3.weight',
-              'darknet.conv5.conv5_1.weight',
-              'darknet.conv5.conv5_2.weight',
-              'darknet.conv5.conv5_3.weight'],
-             ['rfb3_1.branch0.0.weight',
-              'rfb3_1.branch1.0.weight',
-              'rfb3_1.branch1.1.weight',
-              'rfb3_1.branch1.2.weight',
-              'rfb3_1.branch1.3.weight',
-              'rfb3_1.branch2.0.weight',
-              'rfb3_1.branch2.1.weight',
-              'rfb3_1.branch2.2.weight',
-              'rfb3_1.branch2.3.weight',
-              'rfb3_1.branch3.0.weight',
-              'rfb3_1.branch3.1.weight',
-              'rfb3_1.branch3.2.weight',
-              'rfb3_1.branch3.3.weight',
-              'rfb3_1.conv_cat.weight',
-              'rfb3_1.conv_res.weight'],
-             ['rfb4_1.branch0.0.weight',
-              'rfb4_1.branch1.0.weight',
-              'rfb4_1.branch1.1.weight',
-              'rfb4_1.branch1.2.weight',
-              'rfb4_1.branch1.3.weight',
-              'rfb4_1.branch2.0.weight',
-              'rfb4_1.branch2.1.weight',
-              'rfb4_1.branch2.2.weight',
-              'rfb4_1.branch2.3.weight',
-              'rfb4_1.branch3.0.weight',
-              'rfb4_1.branch3.1.weight',
-              'rfb4_1.branch3.2.weight',
-              'rfb4_1.branch3.3.weight',
-              'rfb4_1.conv_cat.weight',
-              'rfb4_1.conv_res.weight'],
-             ['rfb5_1.branch0.0.weight',
-              'rfb5_1.branch1.0.weight',
-              'rfb5_1.branch1.1.weight',
-              'rfb5_1.branch1.2.weight',
-              'rfb5_1.branch1.3.weight',
-              'rfb5_1.branch2.0.weight',
-              'rfb5_1.branch2.1.weight',
-              'rfb5_1.branch2.2.weight',
-              'rfb5_1.branch2.3.weight',
-              'rfb5_1.branch3.0.weight',
-              'rfb5_1.branch3.1.weight',
-              'rfb5_1.branch3.2.weight',
-              'rfb5_1.branch3.3.weight',
-              'rfb5_1.conv_cat.weight',
-              'rfb5_1.conv_res.weight'],
-             ['agg1.conv_upsample1.weight',
-              'agg1.conv_upsample2.weight'
-              'agg1.conv_upsample3.weight',
-              'agg1.conv_upsample4.weight',
-              'agg1.conv_concat2.weight',
-              'agg1.conv_upsample5.weight',
-              'agg1.conv_concat3.weight',
-              'agg1.conv4.weight',
-              'agg1.conv5.weight']]
-    for params, fname in zip(paramss, ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1']):
-        sensitivity = distiller.perform_sensitivity_analysis(model,
-                                                             net_params=params,
-                                                             sparsities=np.arange(0,1,0.05),
-                                                             test_func=test_fnc,
-                                                             group='filter')
-        #distiller.sensitivities_to_png(sensitivity, 'sensitivity_{}.png'.format(fname))
-        distiller.sensitivities_to_csv(sensitivity, 'sensitivity_{}.csv'.format(fname))
-    print('Complete')
-    exit()
 
 save_dir = os.path.join('pruning', model.name, pruner)
 if not os.path.exists(save_dir):

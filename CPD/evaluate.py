@@ -45,7 +45,7 @@ class Eval():
                 for result in dataset.values():
                     results.append(result)
 
-            filename = 'metrics_{}.csv'.format(self.model_name)
+            filename = 'results/{}.csv'.format(self.model_name)
             with open(filename, 'w') as outfile:
                 writer = csv.writer(outfile)
                 writer.writerow(header)
@@ -86,6 +86,7 @@ class Eval():
                     Q = torch.FloatTensor([0.0])
 
             self.S[dataset[0]].append(Q.cpu().numpy())
+        return Q.cpu().numpy()
 
     def _eval_pr(self, y_pred, y, num):
         if torch.cuda.is_available():
