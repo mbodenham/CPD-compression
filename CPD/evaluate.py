@@ -86,6 +86,25 @@ class Eval():
                     Q = torch.FloatTensor([0.0])
 
             self.S[dataset[0]].append(Q.cpu().numpy())
+
+    def smeasure_only(self, pred, gt):
+        alpha = 0.5
+
+        with torch.no_grad():
+            y = gt.mean()
+            if y == 0:
+                x = pred.mean()
+                Q = 1.0 - x
+            elif y == 1:
+                x = pred.mean()
+                Q = x
+            else:
+                gt[gt>=0.5] = 1
+                gt[gt<0.5] = 0
+                Q = alpha * self._S_object(pred, gt) + (1-alpha) * self._S_region(pred, gt)
+                if Q.item() < 0:
+                    Q = torch.FloatTensor([0.0])
+
         return Q.cpu().numpy()
 
     def _eval_pr(self, y_pred, y, num):

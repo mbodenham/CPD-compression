@@ -5,6 +5,7 @@ import torch.utils.tensorboard  as tensorboard
 
 import os, argparse
 from datetime import datetime
+import numpy as np
 
 import CPD
 
@@ -30,21 +31,25 @@ def train(train_loader, model, optimizer, epoch, writer):
     def validate(val_loader, model, writer, global_step):
         model.eval()
         eval = CPD.Eval('.datasets/val', model.name)
+        with torch.no_grad():
 
-        s = np.array(len(test_loader))
-        for idx, pack in enumerate(test_loader):
-            img, gt, dataset, img_name, _, _ = pack
-            print('{} - {}'.format(dataset[0], img_name[0]))
-            img = img.to(device)
-            gt = gt.to(device)
+            s = np.array(len(val_loader))
+            val_loss = s.copy()
+            for idx, pack in enumerate(val_loader):
+                img, gt, dataset, img_name, _, _ = pack
+                print('{} - {}'.format(dataset[0], img_name[0]))
+                img = img.to(device)
+                gt = gt.to(device)
 
-            if '_A' in model.name:
-                pred = model(input)
-            else:
-                _, pred = model(input)
-            s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
+                if '_A' in model.name:
+                    pred = model(img)
+                else:
+                    _, pred = model(img)
+                s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
+                val_loss[idx] = torch.nn.BCEWithLogitsLoss()(pred, gt)
 
         writer.add_scalar('S-Measure', float(s.mean()), global_step)
+        writer.add_scalar('Loss/Validation', float(val_loss.mean()), global_step)
         print('{} Epoch [{:03d}/{:03d}], S-Measure: {:.4f}'.
               format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, s.mean()))
 
@@ -60,7 +65,7 @@ def train(train_loader, model, optimizer, epoch, writer):
         if '_A' in model.name:
             preds = model(imgs)
             loss = CE(preds, gts)
-            writer.add_scalar('Loss', float(loss), global_step)
+            writer.add_scalar('Loss/Training', float(loss), global_step)
         else:
             atts, preds = model(imgs)
             att_loss = CE(atts, gts)

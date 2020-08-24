@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from .darknet import D19, D19_A, D19_A_pruned
 from .evaluate import Eval
-from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder, FrameFolder
+from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB, aggregation_minimal, RFB_minimal
 from .vgg import B2_VGG
 
