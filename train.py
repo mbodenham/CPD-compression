@@ -16,8 +16,8 @@ parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='u
 parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--epoch', type=int, default=100, help='number of epochs,  default = 100')
-parser.add_argument('--lr', type=float, default=1e-3, help='learning rate,  default = 0.0001')
-parser.add_argument('--batch_size', type=int, default=32, help='training batch size,  default = 32')
+parser.add_argument('--lr', type=float, default=0.01, help='learning rate,  default = 0.0001')
+parser.add_argument('--batch_size', type=int, default=10, help='training batch size,  default = 10')
 parser.add_argument('--clip', type=float, default=0.5, help='gradient clipping margin, default = 0.5')
 parser.add_argument('--decay_rate', type=float, default=0.1, help='decay rate of learning rate, default = 0.1')
 parser.add_argument('--decay_epoch', type=int, default=25, help='every n epochs decay learning rate,  default = 30')
@@ -96,7 +96,7 @@ print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
 
-optimizer = torch.optim.SGD(model.parameters(), args.lr)
+optimizer = torch.optim.SGD(model.parameters(), args.lr, momentum=0.9, weight_decay=0.0005)
 
 transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
@@ -125,15 +125,17 @@ no_learning = 0
 val_loss = 1
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
-    lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
+    #lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, verbose=True)
     val_loss = train(train_loader, model, optimizer, epoch, writer)
     if new_val_loss < val_loss:
         torch.save(model.state_dict(), '{}/{}.{}.pth'.format(save_path, model.name, epoch))
         no_learning = 0
-    else:
-        no_learning += 1
-        if no_learning >= 10:
-            print('Learning finished at {} epochs.'.format(epoch))
-            exit()
-    val_loss = new_val_loss
-    lr_scheduler.step(val_loss)
+    torch.save(model.state_dict(), '{}/{}.{}.pth'.format(save_path, model.name))
+    #else:
+        #no_learning += 1
+        #if no_learning >= 10:
+            #print('Learning finished at {} epochs.'.format(epoch))
+            #exit()
+
+    #val_loss = new_val_loss
+    #lr_scheduler.step(val_loss)
