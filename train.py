@@ -49,14 +49,16 @@ def train(train_loader, model, optimizer, epoch, writer):
 
         val_writer.add_scalar('S-Measure', float(s.mean()), global_step)
         val_writer.add_scalar('Loss', float(val_loss.mean()), global_step)
-        print('{} Epoch [{:03d}/{:03d}], S-Measure: {:.4f}'.
-              format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, s.mean()))
+        print('{} Epoch [{:03d}/{:03d}], S-Measure: {:.4f}, Validation Loss: {:.4f}'.
+              format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, s.mean(), val_loss.mean()))
 
     total_steps = len(train_loader)
     CE = torch.nn.BCEWithLogitsLoss()
     model.train()
     for step, pack in enumerate(train_loader, start=1):
         global_step = (epoch-1) * total_steps + step
+        if global_step == 1:
+            validate(val_loader, model, val_writer, global_step)
         optimizer.zero_grad()
         imgs, gts, _, _, _, _ = pack
         imgs = imgs.to(device)
@@ -113,8 +115,8 @@ dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, ta
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
-writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), train))
-val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), val))
+writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
+val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'val'))
 print('Dataset loaded successfully')
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
