@@ -105,7 +105,7 @@ class CPD_D19(nn.Module):
 
     def forward(self, x):
 
-        x3, x4_1, x5_1, x4_1, x5_1 = self.darknet(x)
+        x3, x4_1, x5_1, x4_2, x5_2 = self.darknet(x)
 
         x3_1 = self.rfb3_1(x3)
         x4_1 = self.rfb4_1(x4_1)
