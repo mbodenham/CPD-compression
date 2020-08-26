@@ -95,7 +95,7 @@ class D19(nn.Module):
         conv5_2.add_module('relu5_2_5', nn.LeakyReLU(0.1, inplace=True))
         self.conv5_2 = conv5_2
 
-        weights = torch.load('darknet19.pth')
+        weights = torch.load('./CPD/darknet19_weights.pth')
         self._initialize_weights(weights)
 
     def forward(self, x):
@@ -376,14 +376,14 @@ class D19_A(nn.Module):
         self.conv5.add_module('conv5_3', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
         self.conv5.add_module('bn5_3', nn.BatchNorm2d(512))
         self.conv5.add_module('relu5_3', nn.LeakyReLU(0.1, inplace=True))
-        self.conv5.add_module('conv5_2', nn.Conv2d(512, 256, 1, 1, 0, bias=False))
-        self.conv5.add_module('bn5_2', nn.BatchNorm2d(256))
-        self.conv5.add_module('relu5_2', nn.LeakyReLU(0.1, inplace=True))
-        self.conv5.add_module('conv5_3', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
-        self.conv5.add_module('bn5_3', nn.BatchNorm2d(512))
-        self.conv5.add_module('relu5_3', nn.LeakyReLU(0.1, inplace=True))
+        self.conv5.add_module('conv5_4', nn.Conv2d(512, 256, 1, 1, 0, bias=False))
+        self.conv5.add_module('bn5_4', nn.BatchNorm2d(256))
+        self.conv5.add_module('relu5_4', nn.LeakyReLU(0.1, inplace=True))
+        self.conv5.add_module('conv5_5', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
+        self.conv5.add_module('bn5_5', nn.BatchNorm2d(512))
+        self.conv5.add_module('relu5_5', nn.LeakyReLU(0.1, inplace=True))
 
-        weights = torch.load('darknet19.pth')
+        weights = torch.load('./CPD/darknet19_weights.pth')
         self._initialize_weights(weights)
 
     def forward(self, x):
@@ -609,8 +609,14 @@ class D19_A_pruned(nn.Module):
         self.conv5.add_module('conv5_3', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
         self.conv5.add_module('bn5_3', nn.BatchNorm2d(512))
         self.conv5.add_module('relu5_3', nn.LeakyReLU(0.1, inplace=True))
-        
-        weights = torch.load('darknet19.pth')
+        self.conv5.add_module('conv5_4', nn.Conv2d(512, 256, 1, 1, 0, bias=False))
+        self.conv5.add_module('bn5_4', nn.BatchNorm2d(256))
+        self.conv5.add_module('relu5_4', nn.LeakyReLU(0.1, inplace=True))
+        self.conv5.add_module('conv5_5', nn.Conv2d(256, 512, 3, 1, 1, bias=False))
+        self.conv5.add_module('bn5_5', nn.BatchNorm2d(512))
+        self.conv5.add_module('relu5_5', nn.LeakyReLU(0.1, inplace=True))
+
+        weights = torch.load('./CPD/darknet19_weights.pth')
         self._initialize_weights(weights)
 
     def forward(self, x):
@@ -624,7 +630,7 @@ class D19_A_pruned(nn.Module):
     def _initialize_weights(self, weights):
         keys = list(weights.keys())
         i = 0
-        self.conv1.conv1_1.weight.data.copy_(weights[keys[i]])
+        #self.conv1.conv1_1.weight.data.copy_(weights[keys[i]])
         i+=1
         self.conv1.bn1_1.weight.data.copy_(weights[keys[i]])
         i+=1

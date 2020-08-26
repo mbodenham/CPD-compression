@@ -122,4 +122,4 @@ if not os.path.exists(save_path):
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
     val_loss = train(train_loader, model, optimizer, epoch, writer)
-    torch.save(model.state_dict(), '{}/{}.{}.{}.pth'.format(save_path, model.name, epoch, epoch*len(train_loader)))
+    torch.save(model.state_dict(), '{}/{}.{:02d}.{:05d}.pth'.format(save_path, model.name, epoch, epoch*len(train_loader)))
