@@ -1,5 +1,6 @@
 import os
 import os.path
+import torchvision.transforms as transforms
 
 from torchvision.datasets.vision import VisionDataset
 from PIL import Image
@@ -180,11 +181,36 @@ class DatasetFolder(VisionDataset):
         orig_img = sample
         target = self.loader(gt_path)
         img_res = tuple(sample.size)
+
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
             target = self.target_transform(target)
             orig_img = self.target_transform(orig_img)
+
+        sample = transforms.ToPILImage()(sample)
+        orig_img = transforms.ToPILImage()(orig_img)
+        target = transforms.ToPILImage()(target)
+
+        crop = True
+        if crop:
+            w, h = _get_image_size(sample)
+            th, tw = output_size
+            i = random.randint(0, h - th)
+            j = random.randint(0, w - tw)
+
+            sample = F.crop(sample, i, j, h, w)
+            orig_img = F.crop(orig_img, i, j, h, w)
+            target = F.crop(target, i, j, h, w)
+
+            if torch.rand(1) < self.p:
+                sample = F.hflip(sample)
+                orig_img = F.hflip(orig_img)
+                target = F.hflip(target)
+
+        sample = transforms.ToTensor()(sample)
+        orig_img = transforms.ToTensor()(orig_img)
+        target = transforms.ToTensor()(target)
 
         return sample, target, dataset, img_name, img_res, orig_img
 

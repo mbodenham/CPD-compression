@@ -13,8 +13,9 @@ import CPD
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', default='./datasets/train', help='path to datasets, default = ./datasets/train')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
-parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help='chose model, default = CPD_darknet19')
+parser.add_argument('--model', default='CPD_D19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
+parser.add_argument('--crop_imgres', type=int, default=256, help='image input and output resolution, default = 352')
 parser.add_argument('--epoch', type=int, default=40, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
 parser.add_argument('--batch_size', type=int, default=10, help='training batch size,  default = 10')
@@ -27,8 +28,6 @@ def train(model, train_loader, optimizer, epoch, writer):
     model.train()
     for step, pack in enumerate(train_loader, start=1):
         global_step = (epoch-1) * total_steps + step
-        if global_step == 1:
-            validate(val_loader, model, val_writer, global_step)
         optimizer.zero_grad()
         imgs, gts, _, _, _, origs = pack
         imgs = imgs.to(device)
@@ -64,6 +63,7 @@ def validate(model, val_loader, val_writer, global_step):
     with torch.no_grad():
 
         s = np.zeros(len(val_loader))
+        mae = s.copy()
         val_loss = s.copy()
         for idx, pack in enumerate(val_loader):
             img, gt, _, _, _, orig = pack
@@ -75,10 +75,12 @@ def validate(model, val_loader, val_writer, global_step):
             else:
                 _, pred = model(img)
             s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
+            mae[idx] = troch.nn.L1Loss(pred.gigmoid(), gt)
             val_loss[idx] = torch.nn.BCEWithLogitsLoss()(pred, gt)
 
     model.train()
-    val_writer.add_scalar('S-Measure', float(s.mean()), global_step)
+    val_writer.add_scalar('Metrics/S-Measure', float(s.mean()), global_step)
+    val_writer.add_scalar('Metrics/MAE', float(mae.mean()), global_step)
     val_writer.add_scalar('Loss', float(val_loss.mean()), global_step)
     img = utils.make_grid(torch.cat((orig.cpu(), gt.cpu().repeat(1, 3, 1, 1), pred.sigmoid().cpu().repeat(1, 3, 1, 1))))
     val_writer.add_image('Prediction', img, global_step)
@@ -102,13 +104,16 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
+print(transform.transforms)
+input()
+
 save_dir = os.path.join('training', model.name)
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 ckpt_path = os.path.join(save_dir, 'ckpts')
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
+if not os.path.exists(ckpt_path):
+    os.makedirs(ckpt_path)
 
 dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
@@ -119,6 +124,7 @@ val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.n
 print('Dataset loaded successfully')
 
 lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
+validate(model, val_loader, val_writer, global_step)
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
     train(model, train_loader, optimizer, epoch, writer)
