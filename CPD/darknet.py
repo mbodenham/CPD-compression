@@ -632,18 +632,18 @@ class D19_A_pruned(nn.Module):
         i = 0
         #self.conv1.conv1_1.weight.data.copy_(weights[keys[i]])
         i+=1
-        self.conv1.bn1_1.weight.data.copy_(weights[keys[i]])
+        #self.conv1.bn1_1.weight.data.copy_(weights[keys[i]])
         i+=1
-        self.conv1.bn1_1.bias.data.copy_(weights[keys[i]])
+        #self.conv1.bn1_1.bias.data.copy_(weights[keys[i]])
         i+=1
-        self.conv1.bn1_1.running_mean.data.copy_(weights[keys[i]])
+        #self.conv1.bn1_1.running_mean.data.copy_(weights[keys[i]])
         i+=1
-        self.conv1.bn1_1.running_var.data.copy_(weights[keys[i]])
+        #self.conv1.bn1_1.running_var.data.copy_(weights[keys[i]])
         i+=1
-        self.conv1.bn1_1.num_batches_tracked.data.copy_(weights[keys[i]])
+        #self.conv1.bn1_1.num_batches_tracked.data.copy_(weights[keys[i]])
         i+=1
 
-        self.conv2.conv2_1.weight.data.copy_(weights[keys[i]])
+        #self.conv2.conv2_1.weight.data.copy_(weights[keys[i]])
         i+=1
         self.conv2.bn2_1.weight.data.copy_(weights[keys[i]])
         i+=1
