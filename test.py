@@ -77,9 +77,9 @@ elif args.eval:
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
     eval = CPD.Eval(args.datasets_path, model.name)
 
-    for pack in test_loader:
+    for idx, pack in enumerate(test_loader):
         img, gt, dataset, img_name, _, _ = pack
-        print('{} - {}'.format(dataset[0], img_name[0]))
+        print('[{:.2f}%] {} - {}'.format((idx/len(test_loader))*100, dataset[0], img_name[0]))
         img = img.to(device)
         gt = gt.to(device)
 

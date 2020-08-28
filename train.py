@@ -16,7 +16,7 @@ parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='u
 parser.add_argument('--model', default='CPD_D19', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--crop_imgres', type=int, default=256, help='image input and output resolution, default = 352')
-parser.add_argument('--epoch', type=int, default=40, help='number of epochs,  default = 100')
+parser.add_argument('--epoch', type=int, default=20, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
 parser.add_argument('--batch_size', type=int, default=10, help='training batch size,  default = 10')
 parser.add_argument('--clip', type=float, default=0.5, help='gradient clipping margin, default = 0.5')
@@ -57,7 +57,7 @@ def train(model, train_loader, optimizer, epoch, writer):
             writer.add_image('Prediction', img, global_step)
 
 
-def validate(model, val_loader, val_writer, global_step):
+def validate(model, val_loader, val_writer, epoch, global_step):
     model.eval()
     eval = CPD.Eval('./datasets/val', model.name)
     with torch.no_grad():
@@ -75,7 +75,7 @@ def validate(model, val_loader, val_writer, global_step):
             else:
                 _, pred = model(img)
             s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
-            mae[idx] = troch.nn.L1Loss(pred.gigmoid(), gt)
+            mae[idx] = torch.nn.L1Loss()(pred.sigmoid(), gt)
             val_loss[idx] = torch.nn.BCEWithLogitsLoss()(pred, gt)
 
     model.train()
@@ -84,8 +84,8 @@ def validate(model, val_loader, val_writer, global_step):
     val_writer.add_scalar('Loss', float(val_loss.mean()), global_step)
     img = utils.make_grid(torch.cat((orig.cpu(), gt.cpu().repeat(1, 3, 1, 1), pred.sigmoid().cpu().repeat(1, 3, 1, 1))))
     val_writer.add_image('Prediction', img, global_step)
-    print('{} Epoch [{:03d}/{:03d}], S-Measure: {:.4f}, Validation Loss: {:.4f}'.
-          format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, s.mean(), val_loss.mean()))
+    print('{} Epoch [{:03d}/{:03d}], MAE: {:.4f}, S-Measure: {:.4f}, Validation Loss: {:.4f}'.
+          format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), epoch, args.epoch, mae.mean(), s.mean(), val_loss.mean()))
 
     return val_loss.mean()
 
@@ -122,10 +122,10 @@ val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.n
 print('Dataset loaded successfully')
 
 lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
-validate(model, val_loader, val_writer, global_step)
+validate(model, val_loader, val_writer, 1, 0)
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
     train(model, train_loader, optimizer, epoch, writer)
-    val_loss = validate(model, val_loader, val_writer, epoch*len(train_loader))
+    val_loss = validate(model, val_loader, val_writer, epoch, epoch*len(train_loader))
     lr_scheduler.step(val_loss)
     torch.save(model.state_dict(), '{}/{}.{:02d}.{:05d}.pth'.format(ckpt_path, model.name, epoch, epoch*len(train_loader)))
