@@ -104,8 +104,6 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
-print(transform.transforms)
-input()
 
 save_dir = os.path.join('training', model.name)
 if not os.path.exists(save_dir):
