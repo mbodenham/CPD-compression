@@ -188,12 +188,13 @@ class DatasetFolder(VisionDataset):
             target = self.target_transform(target)
             orig_img = self.target_transform(orig_img)
 
-        sample = transforms.ToPILImage()(sample)
-        orig_img = transforms.ToPILImage()(orig_img)
-        target = transforms.ToPILImage()(target)
-
         crop = False
         if crop:
+
+            sample = transforms.ToPILImage()(sample)
+            orig_img = transforms.ToPILImage()(orig_img)
+            target = transforms.ToPILImage()(target)
+
             w, h = _get_image_size(sample)
             th, tw = output_size
             i = random.randint(0, h - th)
@@ -208,9 +209,9 @@ class DatasetFolder(VisionDataset):
                 orig_img = F.hflip(orig_img)
                 target = F.hflip(target)
 
-        sample = transforms.ToTensor()(sample)
-        orig_img = transforms.ToTensor()(orig_img)
-        target = transforms.ToTensor()(target)
+            sample = transforms.ToTensor()(sample)
+            orig_img = transforms.ToTensor()(orig_img)
+            target = transforms.ToTensor()(target)
 
         return sample, target, dataset, img_name, img_res, orig_img
 

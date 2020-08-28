@@ -60,6 +60,7 @@ def train(model, train_loader, optimizer, epoch, writer):
 def validate(model, val_loader, val_writer, epoch, global_step):
     model.eval()
     eval = CPD.Eval('./datasets/val', model.name)
+    eval.to(device)
     with torch.no_grad():
 
         s = np.zeros(len(val_loader))
