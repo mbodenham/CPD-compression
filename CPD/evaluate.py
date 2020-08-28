@@ -18,6 +18,11 @@ class Eval():
         self.maxF = {ds_name: [] for ds_name in self.datasets}
         self.S = {ds_name: [] for ds_name in self.datasets}
         self.metrics = {ds_name: {} for ds_name in self.datasets}
+        self.device = torch.device('cpu')
+
+    def to(device):
+        self.device = device
+
 
     def run(self, pred, gt, dataset):
         self.MAE(pred, gt, dataset)
@@ -107,12 +112,9 @@ class Eval():
         return Q.cpu().numpy()
 
     def _eval_pr(self, y_pred, y, num):
-        if torch.cuda.is_available():
-            prec, recall = torch.zeros(num).cuda(), torch.zeros(num).cuda()
-            thlist = torch.linspace(0, 1 - 1e-10, num).cuda()
-        else:
-            prec, recall = torch.zeros(num), torch.zeros(num)
-            thlist = torch.linspace(0, 1 - 1e-10, num)
+
+        prec, recall = torch.zeros(num).to(self.device), torch.zeros(num).to(self.device)
+        thlist = torch.linspace(0, 1 - 1e-10, num).to(self.device)
         for i in range(num):
             y_temp = (y_pred >= thlist[i]).float()
             tp = (y_temp * y).sum()
@@ -158,20 +160,12 @@ class Eval():
         rows, cols = gt.size()[-2:]
         gt = gt.view(rows, cols)
         if gt.sum() == 0:
-            if torch.cuda.is_available():
-                X = torch.eye(1).cuda() * round(cols / 2)
-                Y = torch.eye(1).cuda() * round(rows / 2)
-            else:
-                X = torch.eye(1) * round(cols / 2)
-                Y = torch.eye(1) * round(rows / 2)
+            X = torch.eye(1).to(self.device) * round(cols / 2)
+            Y = torch.eye(1).to(self.device) * round(rows / 2)
         else:
             total = gt.sum()
-            if torch.cuda.is_available():
-                i = torch.from_numpy(np.arange(0,cols)).cuda().float()
-                j = torch.from_numpy(np.arange(0,rows)).cuda().float()
-            else:
-                i = torch.from_numpy(np.arange(0,cols)).float()
-                j = torch.from_numpy(np.arange(0,rows)).float()
+            i = torch.from_numpy(np.arange(0,cols)).to(self.device).float()
+            j = torch.from_numpy(np.arange(0,rows)).to(self.device).float()
             X = torch.round((gt.sum(dim=0)*i).sum() / total)
             Y = torch.round((gt.sum(dim=1)*j).sum() / total)
         return X.long(), Y.long()
