@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import torchvision.utils as utils
 import torchvision.transforms as transforms
 
+from tqdm import tqdm
 import time
 import numpy as np
 import pdb, os, argparse
@@ -76,10 +77,11 @@ elif args.eval:
     dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
     eval = CPD.Eval(args.datasets_path, model.name)
+    eval.to(device)
 
-    for idx, pack in enumerate(test_loader):
+    for pack in tqdm(test_loader):
         img, gt, dataset, img_name, _, _ = pack
-        print('[{:.2f}%] {} - {}'.format((idx/len(test_loader))*100, dataset[0], img_name[0]))
+        #print('[{:.2f}%] {} - {}'.format((idx/len(test_loader))*100, dataset[0], img_name[0]))
         img = img.to(device)
         gt = gt.to(device)
 

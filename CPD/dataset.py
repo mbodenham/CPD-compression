@@ -192,7 +192,7 @@ class DatasetFolder(VisionDataset):
         orig_img = transforms.ToPILImage()(orig_img)
         target = transforms.ToPILImage()(target)
 
-        crop = True
+        crop = False
         if crop:
             w, h = _get_image_size(sample)
             th, tw = output_size
