@@ -20,7 +20,11 @@ class Eval():
         self.metrics = {ds_name: {} for ds_name in self.datasets}
         self.device = torch.device('cpu')
 
+<<<<<<< HEAD
     def to(self, device):
+=======
+    def to(device):
+>>>>>>> 0701d14e71ffc87788cd1a00b990544f6382d199
         self.device = device
 
 

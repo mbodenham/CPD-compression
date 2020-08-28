@@ -76,8 +76,12 @@ if args.time:
 elif args.eval:
     dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+<<<<<<< HEAD
     eval = CPD.Eval(args.datasets_path, model.name)
     eval.to(device)
+=======
+    eval = CPD.Eval(args.datasets_path, model.name).to(device)
+>>>>>>> 0701d14e71ffc87788cd1a00b990544f6382d199
 
     for pack in tqdm(test_loader):
         img, gt, dataset, img_name, _, _ = pack
