@@ -28,8 +28,7 @@ print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
 
-model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
-model.eval()
+#model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
 print('Loaded:', model.name)
 
 transform = transforms.Compose([
@@ -48,9 +47,9 @@ def get_pred(model, input):
 
     return pred
 
-if args.time:
-    model.eval()
-    with torch.no_grad():
+model.eval()
+with torch.no_grad():
+    if args.time:
         n = 100
         input = torch.rand([1, 3, args.imgres, args.imgres]).to(device)
         times = np.zeros(args.reps)
@@ -68,25 +67,27 @@ if args.time:
             times[rep] = time.time() - t0
 
         avg_t = np.mean(times)
-    print('Inference time', avg_t)
-    print('Std', np.std(times))
-    print('FPS', 1/avg_t)
-    print(prof.key_averages().table(sort_by="self_cpu_time_total"))
+        print('Inference time', avg_t)
+        print('Std', np.std(times))
+        print('FPS', 1/avg_t)
+        print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
-elif args.eval:
-    dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
-    test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
-    eval = CPD.Eval(args.datasets_path, model.name)
-    eval.to(device)
+    if args.eval:
+        dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
+        test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+        eval = CPD.Eval(args.datasets_path, model.name)
+        eval.to(device)
 
+        for pack in tqdm(test_loader):
+            img, gt, dataset, img_name, _, _ = pack
+            img = img.to(device)
+            gt = gt.to(device)
 
-    for pack in tqdm(test_loader):
-        img, gt, dataset, img_name, _, _ = pack
-        #print('[{:.2f}%] {} - {}'.format((idx/len(test_loader))*100, dataset[0], img_name[0]))
-        img = img.to(device)
-        gt = gt.to(device)
+            pred = get_pred(model, img)
+            eval.run(pred.sigmoid(), gt, dataset)
 
-        pred = get_pred(model, img)
-        eval.run(pred.sigmoid(), gt, dataset)
-
-    print(eval.results())
+        results = eval.results()
+        for dataset in results.keys():
+            print(dataset)
+            for metric in results[dataset].keys():
+                print('\t{}\t{:.4f}'.format(metric, results[dataset][metric])))

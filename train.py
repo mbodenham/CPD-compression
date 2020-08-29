@@ -19,7 +19,8 @@ parser.add_argument('--crop_imgres', type=int, default=256, help='image input an
 parser.add_argument('--epoch', type=int, default=20, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
 parser.add_argument('--batch_size', type=int, default=10, help='training batch size,  default = 10')
-parser.add_argument('--clip', type=float, default=0.5, help='gradient clipping margin, default = 0.5')
+parser.add_argument('--lr_patience', type=int, default=2, help='gradient clipping margin, default = 0.5')
+parser.add_argument('--training_patience', type=int, default=6, help='gradient clipping margin, default = 0.5')
 args = parser.parse_args()
 
 def train(model, train_loader, optimizer, epoch, writer):
@@ -46,7 +47,6 @@ def train(model, train_loader, optimizer, epoch, writer):
             writer.add_scalar('Loss/Total Loss', float(loss), global_step)
             writer.add_scalar('Loss', float(det_loss), global_step)
         loss.backward()
-        #torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         optimizer.step()
 
         if step % 100 == 0 or step == total_steps:
@@ -122,11 +122,21 @@ writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now()
 val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'val'))
 print('Dataset loaded successfully')
 
-lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
-validate(model, val_loader, val_writer, 1, 0)
+lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=args.lr_patience, verbose=True)
+best_val_loss = validate(model, val_loader, val_writer, 1, 0)
+patience = 0
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
     train(model, train_loader, optimizer, epoch, writer)
-    val_loss = validate(model, val_loader, val_writer, epoch, epoch*len(train_loader))
     lr_scheduler.step(val_loss)
     torch.save(model.state_dict(), '{}/{}.{:02d}.{:05d}.pth'.format(ckpt_path, model.name, epoch, epoch*len(train_loader)))
+    val_loss = validate(model, val_loader, val_writer, epoch, epoch*len(train_loader))
+
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        patience = 0
+    else:
+        patience += 1
+        if patience >= args.training_patience:
+            print('Training completed after {} epochs'.format(epoch))
+            exit()
