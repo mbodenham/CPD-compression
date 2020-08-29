@@ -23,6 +23,7 @@ args = parser.parse_args()
 
 def test(test_loader, model, criterion, loggers=None, activations_collectors=None, args=None):
     s = np.zeros(len(test_loader))
+    mae = s.copy()
     losses = np.zeros(len(test_loader))
     model.eval()
     eval = CPD.Eval('./datasets/test_small/', model.name)
@@ -35,8 +36,9 @@ def test(test_loader, model, criterion, loggers=None, activations_collectors=Non
                 preds = model(imgs)
                 loss = criterion(preds, gts)
             s[step] = eval.smeasure(preds.sigmoid(), gts,'test')['test']
+            mae[step] = torch.nn.L1Loss(preds.sigmoid(), gts)
             losses[step] = loss
-    return s.mean(), s.mean(), losses.mean()
+    return mae.mean(), s.mean(), losses.mean()
 
 device = torch.device(args.device)
 print('Device: {}'.format(device))
@@ -65,7 +67,9 @@ params = [['darknet.conv1.conv1_1.weight',
           'darknet.conv4.conv4_3.weight',
           'darknet.conv5.conv5_1.weight',
           'darknet.conv5.conv5_2.weight',
-          'darknet.conv5.conv5_3.weight'],
+          'darknet.conv5.conv5_3.weight',
+          'darknet.conv5.conv5_4.weight',
+          'darknet.conv5.conv5_5.weight'],
          ['rfb3_1.branch0.0.weight',
           'rfb3_1.branch1.0.weight',
           'rfb3_1.branch1.1.weight',
@@ -120,7 +124,7 @@ params = [['darknet.conv1.conv1_1.weight',
           'agg1.conv_concat3.weight',
           'agg1.conv4.weight',
           'agg1.conv5.weight']]
-          
+
 for params, fname in zip(params, ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1']):
     sensitivity = distiller.perform_sensitivity_analysis(model,
                                                          net_params=params,
