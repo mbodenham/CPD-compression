@@ -58,21 +58,14 @@ class CPD(nn.Module):
             print('{}\t{}'.format(name, params))
 
     def forward(self, x):
-        x1 = self.vgg.conv1(x)
-        x2 = self.vgg.conv2(x1)
-        x3 = self.vgg.conv3(x2)
+        x3, x4_1, x5_1, x4_2, x5_2 = self.vgg(x)
 
-        x3_1 = x3
-        x4_1 = self.vgg.conv4_1(x3_1)
-        x5_1 = self.vgg.conv5_1(x4_1)
-        x3_1 = self.rfb3_1(x3_1)
+        x3_1 = self.rfb3_1(x3)
         x4_1 = self.rfb4_1(x4_1)
         x5_1 = self.rfb5_1(x5_1)
         attention = self.agg1(x5_1, x4_1, x3_1)
 
         x3_2 = self.HA(attention.sigmoid(), x3)
-        x4_2 = self.vgg.conv4_2(x3_2)
-        x5_2 = self.vgg.conv5_2(x4_2)
         x3_2 = self.rfb3_2(x3_2)
         x4_2 = self.rfb4_2(x4_2)
         x5_2 = self.rfb5_2(x5_2)
@@ -84,7 +77,7 @@ class CPD_A(nn.Module):
     def __init__(self, channel=32):
         super(CPD_A, self).__init__()
         self.name = 'CPD_A'
-        self.darknet = B2_VGG_A()
+        self.vgg = B2_VGG_A()
         self.rfb3_1 = RFB(256, channel)
         self.rfb4_1 = RFB(512, channel)
         self.rfb5_1 = RFB(512, channel)
@@ -99,7 +92,7 @@ class CPD_A(nn.Module):
             print('{}\t{}'.format(name, params))
 
     def forward(self, x):
-        x3, x4, x5 = self.darknet(x)
+        x3, x4, x5 = self.vgg(x)
         x3 = self.rfb3_1(x3)
         x4 = self.rfb4_1(x4)
         x5 = self.rfb5_1(x5)

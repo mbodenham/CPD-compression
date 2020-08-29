@@ -90,4 +90,4 @@ with torch.no_grad():
         for dataset in results.keys():
             print(dataset)
             for metric in results[dataset].keys():
-                print('\t{}\t{:.4f}'.format(metric, results[dataset][metric])))
+                print('\t{}\t{:.4f}'.format(metric, results[dataset][metric]))
