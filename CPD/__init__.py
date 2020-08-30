@@ -5,7 +5,7 @@ from .darknet import D19, D19_A, D19_A_avg, D19_A_pruned
 from .evaluate import Eval
 from .dataset import EvalImageGroundTruthFolder, ImageGroundTruthFolder
 from .modules import aggregation, HA, RFB, aggregation_minimal, RFB_minimal
-from .vgg import B2_VGG, B2_VGG_A
+from .vgg import B2_VGG_D, B2_VGG_A
 
 models = ['CPD', 'CPD_A', 'CPD_D19', 'CPD_D19_A', 'CPD_D19_A_avg', 'CPD_D19_A_P', 'CPD_D19_A_M']
 
@@ -35,7 +35,8 @@ class CPD(nn.Module):
     def __init__(self, channel=32):
         super(CPD, self).__init__()
         self.name = 'CPD'
-        self.vgg = B2_VGG()
+        self.vgg_attention = B2_VGG_A()
+        self.vgg_detection = B2_VGG_D()
         self.rfb3_1 = RFB(256, channel)
         self.rfb4_1 = RFB(512, channel)
         self.rfb5_1 = RFB(512, channel)
@@ -48,24 +49,25 @@ class CPD(nn.Module):
 
         self.HA = HA()
         self.upsample = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False)
-        modules = [self.vgg, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1,
-                   self.rfb3_2, self.rfb4_2, self.rfb5_2, self.agg2, self.HA, self.upsample]
-        modules_names = ['vgg', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1',
-                   'rfb3_2', 'rfb4_2', 'rfb5_2', 'agg2', 'HA', 'upsample']
-        print('Parameters')
-        for module, name in zip(modules, modules_names):
-            params = sum(p.numel() for p in module.parameters() if p.requires_grad)
-            print('{}\t{}'.format(name, params))
+        # modules = [self.vgg, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1,
+        #            self.rfb3_2, self.rfb4_2, self.rfb5_2, self.agg2, self.HA, self.upsample]
+        # modules_names = ['vgg', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1',
+        #            'rfb3_2', 'rfb4_2', 'rfb5_2', 'agg2', 'HA', 'upsample']
+        # print('Parameters')
+        # for module, name in zip(modules, modules_names):
+        #     params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+        #     print('{}\t{}'.format(name, params))
 
     def forward(self, x):
-        x3, x4_1, x5_1, x4_2, x5_2 = self.vgg(x)
-
+        x3, x4_1, x5_1 = self.vgg_attention(x)
         x3_1 = self.rfb3_1(x3)
         x4_1 = self.rfb4_1(x4_1)
         x5_1 = self.rfb5_1(x5_1)
         attention = self.agg1(x5_1, x4_1, x3_1)
 
         x3_2 = self.HA(attention.sigmoid(), x3)
+
+        x4_2, x5_2 = self.vgg_detection(x)
         x3_2 = self.rfb3_2(x3_2)
         x4_2 = self.rfb4_2(x4_2)
         x5_2 = self.rfb5_2(x5_2)

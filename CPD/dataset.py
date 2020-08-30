@@ -147,6 +147,7 @@ class DatasetFolder(VisionDataset):
                 msg += "Supported extensions are: {}".format(",".join(extensions))
             raise RuntimeError(msg)
 
+        self.crop = crop
         self.loader = loader
         self.extensions = extensions
 
@@ -198,8 +199,8 @@ class DatasetFolder(VisionDataset):
 
             w, h = (400, 400)
             th, tw = (352, 352)
-            i = torch.randint(0, h - th + 1, size(1,)).item()
-            j = torch.randint(0, w - tw + 1, size(1,)).item()
+            i = torch.randint(0, h - th + 1, size=(1,)).item()
+            j = torch.randint(0, w - tw + 1, size=(1,)).item()
 
             sample = F.crop(sample, i, j, th, tw)
             orig_img = F.crop(orig_img, i, j, th, tw)
