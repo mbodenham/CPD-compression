@@ -1,8 +1,9 @@
 import os
-import os.path
-import torchvision.transforms as transforms
-
+import torch
 from torchvision.datasets.vision import VisionDataset
+import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
+
 from PIL import Image
 
 
@@ -132,7 +133,7 @@ class DatasetFolder(VisionDataset):
     """
 
     def __init__(self, root, pred_root, loader, extensions=None, transform=None,
-                 target_transform=None, is_valid_file=None, eval=False):
+                 target_transform=None, is_valid_file=None, crop=False):
         super(DatasetFolder, self).__init__(root, transform=transform,
                                             target_transform=target_transform)
         datasets, dataset_to_idx = self._find_datasets(self.root)
@@ -189,22 +190,22 @@ class DatasetFolder(VisionDataset):
             orig_img = self.target_transform(orig_img)
 
         crop = False
-        if crop:
+        if self.crop:
 
             sample = transforms.ToPILImage()(sample)
             orig_img = transforms.ToPILImage()(orig_img)
             target = transforms.ToPILImage()(target)
 
-            w, h = _get_image_size(sample)
-            th, tw = output_size
-            i = random.randint(0, h - th)
-            j = random.randint(0, w - tw)
+            w, h = (400, 400)
+            th, tw = (352, 352)
+            i = torch.randint(0, h - th + 1, size(1,)).item()
+            j = torch.randint(0, w - tw + 1, size(1,)).item()
 
-            sample = F.crop(sample, i, j, h, w)
-            orig_img = F.crop(orig_img, i, j, h, w)
-            target = F.crop(target, i, j, h, w)
+            sample = F.crop(sample, i, j, th, tw)
+            orig_img = F.crop(orig_img, i, j, th, tw)
+            target = F.crop(target, i, j, th, tw)
 
-            if torch.rand(1) < self.p:
+            if torch.rand(1) < 0.5:
                 sample = F.hflip(sample)
                 orig_img = F.hflip(orig_img)
                 target = F.hflip(target)
@@ -271,11 +272,12 @@ class ImageGroundTruthFolder(DatasetFolder):
     """
 
     def __init__(self, root, pred_root=None, transform=None, target_transform=None,
-                 loader=default_loader, is_valid_file=None):
+                 loader=default_loader, is_valid_file=None, crop=False):
         super(ImageGroundTruthFolder, self).__init__(root, pred_root, loader, IMG_EXTENSIONS if is_valid_file is None else None,
                                           transform=transform,
                                           target_transform=target_transform,
-                                          is_valid_file=is_valid_file)
+                                          is_valid_file=is_valid_file,
+                                          crop=crop)
         self.imgs = self.samples
 
 class EvalImageGroundTruthFolder(DatasetFolder):

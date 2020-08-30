@@ -128,7 +128,6 @@ patience = 0
 for epoch in range(1, args.epoch+1):
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
     train(model, train_loader, optimizer, epoch, writer)
-    lr_scheduler.step(val_loss)
     torch.save(model.state_dict(), '{}/{}.{:02d}.{:05d}.pth'.format(ckpt_path, model.name, epoch, epoch*len(train_loader)))
     val_loss = validate(model, val_loader, val_writer, epoch, epoch*len(train_loader))
 
@@ -140,3 +139,4 @@ for epoch in range(1, args.epoch+1):
         if patience >= args.training_patience:
             print('Training completed after {} epochs'.format(epoch))
             exit()
+    lr_scheduler.step(val_loss)

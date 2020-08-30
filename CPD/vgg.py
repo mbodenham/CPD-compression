@@ -80,7 +80,7 @@ class B2_VGG(nn.Module):
         x4_2 = self.conv4_2(x3)
         x5_2 = self.conv5_2(x4_2)
 
-        return x3, x4_1, x5_1, x4_1, x5_1
+        return x3, x4_1, x5_1, x4_2, x5_2
 
     def _initialize_weights(self, pre_train):
         keys = list(pre_train.keys())

@@ -111,7 +111,7 @@ class D19(nn.Module):
         x4_2 = self.conv4_2(x3)
         x5_2 = self.conv5_2(x4_2)
 
-        return x3, x4_1, x5_1, x4_1, x5_1
+        return x3, x4_1, x5_1, x4_2, x5_2
 
     def _initialize_weights(self, weights):
         keys = list(weights.keys())

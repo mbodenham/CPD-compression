@@ -84,8 +84,8 @@ class CPD_A(nn.Module):
         self.agg1 = aggregation(channel)
 
         self.upsample = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=False)
-        modules = [self.darknet, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1, self.upsample]
-        modules_names = ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1', 'upsample']
+        modules = [self.vgg, self.rfb3_1, self.rfb4_1, self.rfb5_1, self.agg1, self.upsample]
+        modules_names = ['vgg', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1', 'upsample']
         print('Parameters')
         for module, name in zip(modules, modules_names):
             params = sum(p.numel() for p in module.parameters() if p.requires_grad)
