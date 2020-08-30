@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 
-class B2_VGG_D(nn.Module):
-    # VGG16 with two branches
+class VGG_D(nn.Module):
+    # VGG16 detection branch
     def __init__(self):
-        super(B2_VGG, self).__init__()
+        super(VGG_D, self).__init__()
         self.conv4_2 = nn.Sequential()
         self.conv4_2.add_module('pool3_2', nn.AvgPool2d(2, stride=2))
         self.conv4_2.add_module('conv4_2_1', nn.Conv2d(256, 512, 3, 1, 1))
@@ -49,11 +49,10 @@ class B2_VGG_D(nn.Module):
         self.conv5_2.conv5_2_2.bias.data.copy_(pre_train[keys[23]])
         self.conv5_2.conv5_2_3.bias.data.copy_(pre_train[keys[25]])
 
-class B2_VGG_A(nn.Module):
-    # VGG16 with two branches
-    # pooling layer at the front of block
+class VGG_A(nn.Module):
+    # VGG16 detection attention branch
     def __init__(self):
-        super(B2_VGG_A, self).__init__()
+        super(VGG_A, self).__init__()
         self.conv1 = nn.Sequential()
         self.conv1.add_module('conv1_1', nn.Conv2d(3, 64, 3, 1, 1))
         self.conv1.add_module('relu1_1', nn.ReLU(inplace=True))

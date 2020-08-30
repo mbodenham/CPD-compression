@@ -13,10 +13,9 @@ class Eval():
     def __init__(self, dataset_dir, model_name):
         self.model_name = model_name
         self.datasets = sorted([d.name for d in os.scandir(dataset_dir) if d.is_dir()])
-        self.mae = {ds_name: [] for ds_name in self.datasets}
-        self.avgF = {ds_name: [] for ds_name in self.datasets}
         self.maxF = {ds_name: [] for ds_name in self.datasets}
         self.S = {ds_name: [] for ds_name in self.datasets}
+        self.mae = {ds_name: [] for ds_name in self.datasets}
         self.metrics = {ds_name: {} for ds_name in self.datasets}
         self.device = torch.device('cpu')
 
@@ -25,16 +24,15 @@ class Eval():
 
 
     def run(self, pred, gt, dataset):
-        self.MAE(pred, gt, dataset)
         self.fmeasure(pred, gt, dataset)
         self.smeasure(pred, gt, dataset)
+        self.MAE(pred, gt, dataset)
 
     def results(self):
         for dataset in self.datasets:
-            self.metrics[dataset]['MAE'] = np.mean(self.mae[dataset])
-            self.metrics[dataset]['avgF'] = np.mean(self.avgF[dataset])
             self.metrics[dataset]['maxF'] = np.mean(self.maxF[dataset])
             self.metrics[dataset]['S'] = np.nanmean(self.S[dataset])
+            self.metrics[dataset]['MAE'] = np.mean(self.mae[dataset])
 
         if print:
             header = []
@@ -43,7 +41,7 @@ class Eval():
                 header.append('')
                 header.append('')
                 header.append('')
-            metrics = ['MAE', 'avgF', 'maxF', 'S'] * len(self.datasets)
+            metrics = ['maxF', 'S', 'MAE'] * len(self.datasets)
             results = []
             for dataset in self.metrics.values():
                 for result in dataset.values():
@@ -67,7 +65,6 @@ class Eval():
             prec, recall = self._eval_pr(pred, gt, 255)
             f_score = ((1 + beta2) * prec * recall) / (beta2 * prec + recall)
             f_score[f_score != f_score] = 0 # for Nan
-            self.avgF[dataset[0]].append(torch.mean(f_score).cpu().numpy())
             self.maxF[dataset[0]].append(self._eval_fmax(prec, recall, beta2).cpu())
 
 

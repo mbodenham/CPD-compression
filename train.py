@@ -1,4 +1,3 @@
-#ssh -L 16006:127.0.0.1:16006 mb2775@ogg.cs.bath.ac.uk
 import torch
 import torchvision.transforms as transforms
 import torchvision.utils as utils
@@ -13,14 +12,15 @@ import CPD
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets_path', default='./datasets/train', help='path to datasets, default = ./datasets/train')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
-parser.add_argument('--model', default='CPD_D19', choices=CPD.models, help='chose model, default = CPD_darknet19')
+parser.add_argument('--model', default='CPD', choices=CPD.models, help='chose model, default = CPD')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
-parser.add_argument('--crop_imgres', type=int, default=256, help='image input and output resolution, default = 352')
+parser.add_argument('--crop_imgres', type=int, default=352, help='image input and output resolution, default = 352')
 parser.add_argument('--epoch', type=int, default=20, help='number of epochs,  default = 100')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate,  default = 0.0001')
 parser.add_argument('--batch_size', type=int, default=10, help='training batch size,  default = 10')
-parser.add_argument('--lr_patience', type=int, default=2, help='gradient clipping margin, default = 0.5')
-parser.add_argument('--training_patience', type=int, default=6, help='gradient clipping margin, default = 0.5')
+parser.add_argument('--lr_patience', type=int, default=2, help='lr decay after n epochs, default = 2')
+parser.add_argument('--training_patience', type=int, default=6, help='stop training after n epochs, default = 4')
+parser.add_argument('--rand_crop', action='store_true', default=False)
 args = parser.parse_args()
 
 def train(model, train_loader, optimizer, epoch, writer):
@@ -114,8 +114,18 @@ ckpt_path = os.path.join(save_dir, 'ckpts')
 if not os.path.exists(ckpt_path):
     os.makedirs(ckpt_path)
 
-dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
+dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform, crop=args.rand_crop)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+
+if args.rand_crop:
+    transform = transforms.Compose([
+                transforms.Resize((352, 352)),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+    gt_transform = transforms.Compose([
+                transforms.Resize((352, 352)),
+                transforms.ToTensor()])
+
 val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
 writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
