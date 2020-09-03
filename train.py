@@ -90,6 +90,12 @@ def validate(model, val_loader, val_writer, epoch, global_step):
 
     return val_loss.mean()
 
+def write_lr(optimizer, writer, step):
+    for param_group in optimizer.param_groups:
+        lr = param_group['lr']
+    writer.add_scalar('Learning Rate', float(lr), step)
+    return lr
+
 device = torch.device(args.device)
 print('Device: {}'.format(device))
 
@@ -118,7 +124,7 @@ dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, ta
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
-writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
+train_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
 val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'val'))
 print('Dataset loaded successfully')
 
@@ -126,8 +132,9 @@ lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
 best_val_loss = validate(model, val_loader, val_writer, 1, 0)
 patience = 0
 for epoch in range(1, args.epoch+1):
+    write_lr(optimizer, train_writer, (epoch-1)*(len(train_loader)+1))
     print('Started epoch {:03d}/{}'.format(epoch, args.epoch))
-    train(model, train_loader, optimizer, epoch, writer)
+    train(model, train_loader, optimizer, epoch, train_writer)
     torch.save(model.state_dict(), '{}/{}.{:02d}.{:05d}.pth'.format(ckpt_path, model.name, epoch, epoch*len(train_loader)))
     val_loss = validate(model, val_loader, val_writer, epoch, epoch*len(train_loader))
 
