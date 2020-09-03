@@ -27,8 +27,6 @@ device = torch.device(args.device)
 print('Device: {}'.format(device))
 
 model = CPD.load_model(args.model).to(device)
-
-#model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
 print('Loaded:', model.name)
 
 transform = transforms.Compose([
@@ -50,13 +48,11 @@ def get_pred(model, input):
 model.eval()
 with torch.no_grad():
     if args.time:
-        n = 100
         input = torch.rand([1, 3, args.imgres, args.imgres]).to(device)
         times = np.zeros(args.reps)
 
-        for warm_up in range(args.reps//2):
+        for warm_up in range(args.reps//10):
             get_pred(model, input)
-
 
         with torch.autograd.profiler.profile() as prof:
             get_pred(model, input)
@@ -73,6 +69,9 @@ with torch.no_grad():
         print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
     if args.eval:
+        model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
+        print(model.darknet.conv1.conv1_1.weight.dim())
+        print(model.darknet.conv2.conv2_1.weight.shape)
         dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
         test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
         eval = CPD.Eval(args.datasets_path, model.name)

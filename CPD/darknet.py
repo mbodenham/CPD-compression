@@ -612,17 +612,17 @@ class D19_A_avg(nn.Module):
         i+=1
         self.conv5.bn5_5.num_batches_tracked.data.copy_(weights[keys[i]])
 
-class D19_A_pruned(nn.Module):
-    def __init__(self):
-        super(D19_A_pruned, self).__init__()
+class D19_A_P(nn.Module):
+    def __init__(self, out_channel=32):
+        super(D19_A_P, self).__init__()
         self.conv1 = nn.Sequential()
-        self.conv1.add_module('conv1_1', nn.Conv2d(3, 26, 3, 1, 1, bias=False))
-        self.conv1.add_module('bn1_1', nn.BatchNorm2d(26))
+        self.conv1.add_module('conv1_1', nn.Conv2d(3, out_channel, 3, 1, 1, bias=False))
+        self.conv1.add_module('bn1_1', nn.BatchNorm2d(out_channel))
         self.conv1.add_module('relu1_1', nn.LeakyReLU(0.1, inplace=True))
 
         self.conv2 = nn.Sequential()
         self.conv2.add_module('avgpool1', nn.AvgPool2d(2, stride=2))
-        self.conv2.add_module('conv2_1', nn.Conv2d(26, 64, 3, 1, 1, bias=False))
+        self.conv2.add_module('conv2_1', nn.Conv2d(out_channel, 64, 3, 1, 1, bias=False))
         self.conv2.add_module('bn2_1', nn.BatchNorm2d(64))
         self.conv2.add_module('relu2_1', nn.LeakyReLU(0.1, inplace=True))
 

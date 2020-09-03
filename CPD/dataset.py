@@ -184,20 +184,13 @@ class DatasetFolder(VisionDataset):
         target = self.loader(gt_path)
         img_res = tuple(sample.size)
 
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-            orig_img = self.target_transform(orig_img)
-
-        crop = False
         if self.crop:
+            res = 402
+            sample = transforms.Resize((res, res))(sample)
+            orig_img = transforms.Resize((res, res))(orig_img)
+            target = transforms.Resize((res, res))(target)
 
-            sample = transforms.ToPILImage()(sample)
-            orig_img = transforms.ToPILImage()(orig_img)
-            target = transforms.ToPILImage()(target)
-
-            w, h = (400, 400)
+            w, h = (res, res)
             th, tw = (352, 352)
             i = torch.randint(0, h - th + 1, size=(1,)).item()
             j = torch.randint(0, w - tw + 1, size=(1,)).item()
@@ -214,6 +207,15 @@ class DatasetFolder(VisionDataset):
             sample = transforms.ToTensor()(sample)
             orig_img = transforms.ToTensor()(orig_img)
             target = transforms.ToTensor()(target)
+
+            sample = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(sample)
+
+        else:
+            if self.transform is not None:
+                sample = self.transform(sample)
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+                orig_img = self.target_transform(orig_img)
 
         return sample, target, dataset, img_name, img_res, orig_img
 

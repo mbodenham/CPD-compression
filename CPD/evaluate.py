@@ -40,7 +40,6 @@ class Eval():
                 header.append(dataset)
                 header.append('')
                 header.append('')
-                header.append('')
             metrics = ['maxF', 'S', 'MAE'] * len(self.datasets)
             results = []
             for dataset in self.metrics.values():

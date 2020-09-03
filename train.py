@@ -116,23 +116,13 @@ if not os.path.exists(ckpt_path):
 
 dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform, crop=args.rand_crop)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-
-if args.rand_crop:
-    transform = transforms.Compose([
-                transforms.Resize((352, 352)),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-    gt_transform = transforms.Compose([
-                transforms.Resize((352, 352)),
-                transforms.ToTensor()])
-
 val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
 writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
 val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'val'))
 print('Dataset loaded successfully')
 
-lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=args.lr_patience, verbose=True)
+lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=args.lr_patience, threshold=0.01, verbose=True)
 best_val_loss = validate(model, val_loader, val_writer, 1, 0)
 patience = 0
 for epoch in range(1, args.epoch+1):

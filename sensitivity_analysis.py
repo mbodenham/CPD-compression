@@ -1,4 +1,3 @@
-#ssh -L 16006:127.0.0.1:16006 mb2775@ogg.cs.bath.ac.uk
 import torch
 import torchvision.transforms as transforms
 import torch.utils.tensorboard  as tensorboard
@@ -13,7 +12,7 @@ import numpy as np
 import CPD
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_path', default='./datasets/test_small', help='path to datasets, default = ./datasets/train')
+parser.add_argument('--dataset_path', default='./datasets/val', help='path to datasets, default = ./datasets/train')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
 parser.add_argument('--model', default='CPD_D19_A', choices=CPD.models, help='chose model, default = CPD_darknet19')
 parser.add_argument('--pth', type=str, default='ckpts/CPD_D19_A.pth', help='model filename, default = CPD_darknet19.pth')
@@ -26,7 +25,8 @@ def test(test_loader, model, criterion, loggers=None, activations_collectors=Non
     mae = s.copy()
     losses = np.zeros(len(test_loader))
     model.eval()
-    eval = CPD.Eval('./datasets/test_small/', model.name)
+    eval = CPD.Eval('./datasets/val/', model.name)
+    eval.to(device)
     with torch.no_grad():
         for step, pack in enumerate(test_loader):
             imgs, gts, _, _, _, _ = pack
@@ -35,8 +35,8 @@ def test(test_loader, model, criterion, loggers=None, activations_collectors=Non
             if '_A' in model.name:
                 preds = model(imgs)
                 loss = criterion(preds, gts)
-            s[step] = eval.smeasure(preds.sigmoid(), gts,'test')['test']
-            mae[step] = torch.nn.L1Loss(preds.sigmoid(), gts)
+            s[step] = eval.smeasure_only(preds.sigmoid(), gts)
+            mae[step] = torch.nn.L1Loss()(preds.sigmoid(), gts)
             losses[step] = loss
     return mae.mean(), s.mean(), losses.mean()
 
@@ -54,7 +54,7 @@ gt_transform = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
-dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
+dataset = CPD.ImageGroundTruthFolder(args.dataset_path, transform=transform, target_transform=gt_transform)
 test_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 test_fnc = partial(test, test_loader=test_loader, criterion=torch.nn.BCEWithLogitsLoss())
 params = [['darknet.conv1.conv1_1.weight',
@@ -119,17 +119,17 @@ params = [['darknet.conv1.conv1_1.weight',
           'agg1.conv_upsample2.weight',
           'agg1.conv_upsample3.weight',
           'agg1.conv_upsample4.weight',
-          'agg1.conv_concat2.weight',
           'agg1.conv_upsample5.weight',
+          'agg1.conv_concat2.weight',
           'agg1.conv_concat3.weight',
           'agg1.conv4.weight',
           'agg1.conv5.weight']]
 
-for params, fname in zip(params, ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1']):
+for net_params, module in zip(params, ['darknet', 'rfb3_1', 'rfb4_1', 'rfb5_1', 'agg1']):
     sensitivity = distiller.perform_sensitivity_analysis(model,
-                                                         net_params=params,
+                                                         net_params=net_params,
                                                          sparsities=np.arange(0,1,0.05),
-                                                         test_func=test_fnc,
+                                                         test_func=test_func,
                                                          group='filter')
-    distiller.sensitivities_to_csv(sensitivity, 'sensitivity_{}.csv'.format(fname))
+    distiller.sensitivities_to_csv(sensitivity, 'sensitivity_{}.csv'.format(module))
 print('Complete')
