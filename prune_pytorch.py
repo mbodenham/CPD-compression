@@ -6,17 +6,27 @@ import torch.nn.utils.prune as prune
 import os, argparse
 from datetime import datetime
 
+from tqdm import tqdm
 import CPD
+
+parser.add_argument('--datasets_path', type=str, default='./datasets/prune_test', help='path to datasets, default = ./datasets/test')
+parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
+args = parser.parse_args()
 
 device = torch.device('cpu')
 state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
 model = CPD.load_model('CPD_D19_A_avg').to(device)
 
-save_path = 'pruned/'
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
+transform = transforms.Compose([
+            transforms.Resize((args.imgres, args.imgres)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+gt_transform = transforms.Compose([
+            transforms.Resize((args.imgres, args.imgres)),
+            transforms.ToTensor()])
+dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
 
-for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
     model.load_state_dict(state_dict)
     parameters_to_prune = []
     for name, module in model.named_modules():
@@ -36,7 +46,23 @@ for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
             weight_sum += torch.sum(module.weight == 0)
 
     gs = 100 *  weight_sum // nelements
-    print('Global sparsity: {:.2f}%'.format(gs))
     for para in parameters_to_prune:
         prune.remove(para[0], para[1])
-    torch.save(model.state_dict(), 'pruned/{}_{:.0f}.pth'.format(model.name, gs))
+
+    with torch.no_grad():
+        model.eval()
+        test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+        eval = CPD.Eval(args.datasets_path, model.name)
+        eval.to(device)
+        s = np.zeros(len(test_loader))
+
+        for idx, pack in enumerate(tqdm(test_loader)):
+            img, gt, dataset, img_name, _, _ = pack
+            img = img.to(device)
+            gt = gt.to(device)
+
+            pred = get_pred(model, img)
+            s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
+
+        model.train()
+        print(gs, s.mean())
