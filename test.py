@@ -18,7 +18,7 @@ parser.add_argument('--model', default='CPD_darknet19', choices=CPD.models, help
 parser.add_argument('--pth', type=str, default='CPD_darknet19.pth', help='model filename, default = CPD_darknet19.pth')
 parser.add_argument('--device', default='cuda', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
-parser.add_argument('--reps', type=int, default=100, help='image input and output resolution, default = 352')
+parser.add_argument('--reps', type=int, default=10000, help='image input and output resolution, default = 352')
 parser.add_argument('--time', action='store_true', default=False)
 parser.add_argument('--eval', action='store_true', default=False)
 args = parser.parse_args()
@@ -51,27 +51,29 @@ with torch.no_grad():
         input = torch.rand([1, 3, args.imgres, args.imgres]).to(device)
         times = np.zeros(args.reps)
 
-        for warm_up in range(args.reps//10):
+        t0 = time.time()
+        while time.time() - t0 < 60:
             get_pred(model, input)
 
         with torch.autograd.profiler.profile() as prof:
             get_pred(model, input)
 
-        for rep in range(args.reps):
+        tt = time.time()
+        idx = 0
+        while time.time() - tt < 180:
             t0 = time.time()
             get_pred(model, input)
-            times[rep] = time.time() - t0
+            times[idx] = time.time() - t0
+            idx += 1
 
-        avg_t = np.mean(times)
+        avg_t = np.mean(times[np.nonzero(times)])
         print('Inference time', avg_t)
-        print('Std', np.std(times))
+        print('Std', np.std(times[np.nonzero(times)]))
         print('FPS', 1/avg_t)
         print(prof.key_averages().table(sort_by="self_cpu_time_total"))
 
     if args.eval:
         model.load_state_dict(torch.load(args.pth, map_location=torch.device(device)))
-        print(model.darknet.conv1.conv1_1.weight.dim())
-        print(model.darknet.conv2.conv2_1.weight.shape)
         dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, target_transform=gt_transform)
         test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
         eval = CPD.Eval(args.datasets_path, model.name)

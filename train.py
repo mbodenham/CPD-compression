@@ -44,8 +44,7 @@ def train(model, train_loader, optimizer, epoch, writer):
             loss = att_loss + det_loss
             writer.add_scalar('Loss/Attention Loss', float(att_loss), global_step)
             writer.add_scalar('Loss/Detection Loss', float(det_loss),global_step)
-            writer.add_scalar('Loss/Total Loss', float(loss), global_step)
-            writer.add_scalar('Loss', float(det_loss), global_step)
+            writer.add_scalar('Loss', float(loss), global_step)
         loss.backward()
         optimizer.step()
 
@@ -61,6 +60,7 @@ def validate(model, val_loader, val_writer, epoch, global_step):
     model.eval()
     eval = CPD.Eval('./datasets/val', model.name)
     eval.to(device)
+    CE = torch.nn.BCEWithLogitsLoss()
     with torch.no_grad():
 
         s = np.zeros(len(val_loader))
@@ -73,11 +73,13 @@ def validate(model, val_loader, val_writer, epoch, global_step):
 
             if '_A' in model.name:
                 pred = model(img)
+                val_loss[idx] = CE(pred, gt)
             else:
-                _, pred = model(img)
+                att, pred = model(img)
+                val_loss[idx] = CE(att, gt) + CE(pred, gt)
+                
             s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
             mae[idx] = torch.nn.L1Loss()(pred.sigmoid(), gt)
-            val_loss[idx] = torch.nn.BCEWithLogitsLoss()(pred, gt)
 
     model.train()
     val_writer.add_scalar('Metrics/S-Measure', float(s.mean()), global_step)

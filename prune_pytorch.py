@@ -6,11 +6,11 @@ import torch.nn.utils.prune as prune
 import os, argparse
 from datetime import datetime
 
-from CPD import CPD, CPD_darknet19
+import CPD
 
 device = torch.device('cpu')
 state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
-model = CPD().to(device)
+model = CPD.load_model('CPD_D19_A_avg').to(device)
 
 save_path = 'pruned/'
 if not os.path.exists(save_path):
@@ -22,7 +22,6 @@ for i in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
             parameters_to_prune.append([module, 'weight'])
-            parameters_to_prune.append([module, 'bias'])
 
     prune.global_unstructured(parameters_to_prune,
                               pruning_method=prune.L1Unstructured,
