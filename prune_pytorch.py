@@ -1,20 +1,30 @@
 import torch
 import torchvision.transforms as transforms
 import torch.utils.tensorboard  as tensorboard
+from torch.utils.data import DataLoader
 import torch.nn.utils.prune as prune
 
 import os, argparse
 from datetime import datetime
-
+import numpy as np
 from tqdm import tqdm
 import CPD
 
-parser.add_argument('--datasets_path', type=str, default='./datasets/prune_test', help='path to datasets, default = ./datasets/test')
+def get_pred(model, input):
+    if '_A' in model.name:
+        pred = model(input)
+    else:
+        _, pred = model(input)
+
+    return pred
+    
+parser = argparse.ArgumentParser()
+parser.add_argument('--datasets_path', type=str, default='./datasets/val', help='path to datasets, default = ./datasets/test')
 parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
 args = parser.parse_args()
 
 device = torch.device('cpu')
-state_dict = torch.load('CPD_darknet19.pth', map_location=torch.device(device))
+state_dict = torch.load('ckpts/CPD_D19_A_avg.pth', map_location=torch.device(device))
 model = CPD.load_model('CPD_D19_A_avg').to(device)
 
 transform = transforms.Compose([
