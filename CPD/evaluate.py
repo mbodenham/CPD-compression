@@ -1,5 +1,4 @@
-## https://github.com/Hanqer/Evaluate-SOD/blob/master/evaluator.py
-
+## Orignal code from https://github.com/Hanqer/Evaluate-SOD/blob/master/evaluator.py
 import csv
 import os
 import time

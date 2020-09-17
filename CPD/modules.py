@@ -6,7 +6,7 @@ from torch.nn.parameter import Parameter
 import numpy as np
 import scipy.stats as st
 
-
+## https://github.com/wuzhe71/CPD/blob/master/model/HolisticAttention.py
 def gkern(kernlen=16, nsig=3):
     interval = (2*nsig+1.)/kernlen
     x = np.linspace(-nsig-interval/2., nsig+interval/2., kernlen+1)
@@ -15,14 +15,14 @@ def gkern(kernlen=16, nsig=3):
     kernel = kernel_raw/kernel_raw.sum()
     return kernel
 
-
+## https://github.com/wuzhe71/CPD/blob/master/model/HolisticAttention.py
 def min_max_norm(in_):
     max_ = in_.max(3)[0].max(2)[0].unsqueeze(2).unsqueeze(3).expand_as(in_)
     min_ = in_.min(3)[0].min(2)[0].unsqueeze(2).unsqueeze(3).expand_as(in_)
     in_ = in_ - min_
     return in_.div(max_-min_+1e-8)
 
-
+## https://github.com/wuzhe71/CPD/blob/master/model/HolisticAttention.py
 class HA(nn.Module):
     # holistic attention module
     def __init__(self, HA_out=False):
@@ -41,6 +41,7 @@ class HA(nn.Module):
             x = torch.mul(x, soft_attention.max(attention))
             return x
 
+## https://github.com/wuzhe71/CPD/blob/master/model/CPD_models.py
 class RFB(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(RFB, self).__init__()
@@ -86,7 +87,7 @@ class RFB(nn.Module):
         x = self.relu(x_cat + self.conv_res(x))
         return x
 
-
+## https://github.com/wuzhe71/CPD/blob/master/model/CPD_models.py
 class aggregation(nn.Module):
     def __init__(self, channel):
         super(aggregation, self).__init__()
@@ -127,9 +128,9 @@ class aggregation(nn.Module):
 
         return x
 
-class RFB_minimal(nn.Module):
+class RFB_pruned(nn.Module):
     def __init__(self, in_channel, out_channel):
-        super(RFB_minimal, self).__init__()
+        super(RFB_pruned, self).__init__()
         self.relu = nn.ReLU(True)
         self.branch2 = nn.Sequential(
             nn.Conv2d(in_channel, out_channel, 1),
@@ -161,9 +162,9 @@ class RFB_minimal(nn.Module):
         x = self.relu(x_cat + self.conv_res(x))
         return x
 
-class aggregation_minimal(nn.Module):
+class aggregation_pruned(nn.Module):
     def __init__(self, channel):
-        super(aggregation_minimal, self).__init__()
+        super(aggregation_pruned, self).__init__()
         self.relu = nn.ReLU(True)
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
