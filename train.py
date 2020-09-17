@@ -77,7 +77,7 @@ def validate(model, val_loader, val_writer, epoch, global_step):
             else:
                 att, pred = model(img)
                 val_loss[idx] = CE(att, gt) + CE(pred, gt)
-                
+
             s[idx] = eval.smeasure_only(pred.sigmoid(), gt)
             mae[idx] = torch.nn.L1Loss()(pred.sigmoid(), gt)
 
@@ -126,8 +126,9 @@ dataset = CPD.ImageGroundTruthFolder(args.datasets_path, transform=transform, ta
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
 val_dataset = CPD.ImageGroundTruthFolder('./datasets/val', transform=transform, target_transform=gt_transform)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=True)
-train_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'train'))
-val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', datetime.now().strftime('%Y%m%d-%H%M%S'), 'val'))
+time_now = datetime.now().strftime('%Y%m%d-%H%M%S')
+train_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs', time_now, 'train'))
+val_writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs',time_now, 'val'))
 print('Dataset loaded successfully')
 
 lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=args.lr_patience, threshold=0.01, verbose=True)

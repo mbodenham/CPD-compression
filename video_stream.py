@@ -3,15 +3,13 @@ import torchvision.transforms as transforms
 import cv2
 import numpy as np
 import argparse
-from tqdm import tqdm
 import CPD
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--video', type=str, default='v42_MSOffice_242', help='path to datasets, default = ./datasets/test')
 parser.add_argument('--model', default='CPD_D19_A_P', choices=CPD.models, help='chose model, default = CPD_D19_A_P')
 parser.add_argument('--pth', type=str, default='ckpts/CPD_D19_A_P.pth', help='model filename, default = CPD_D19_A_P.pth')
 parser.add_argument('--device', default='cpu', choices=['cuda', 'cpu'], help='use cuda or cpu, default = cuda')
-parser.add_argument('--imgres', type=int, default=352, help='image input and output resolution, default = 352')
+parser.add_argument('--imgres', type=int, default=224, help='image input and output resolution, default = 224')
 args = parser.parse_args()
 
 device = torch.device(args.device)
@@ -32,23 +30,15 @@ transform_r = transforms.Compose([
             transforms.Resize((args.imgres, args.imgres)),
             transforms.ToTensor()])
 
-video_name = args.video
-video_dir = './videos/'+video_name+'/'
 
-cap = cv2.VideoCapture(video_dir+'source.avi')
-gt = cv2.VideoCapture(video_dir+'gt.avi')
-nframes = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-fps = int(cap.get(cv2.CAP_PROP_FPS))
+cap = cv2.VideoCapture(0)
+fps = 25
 resolution = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
-out = cv2.VideoWriter(video_dir+'saliency_map.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, resolution)
-out_sbs = cv2.VideoWriter(video_dir+'sbs.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, (resolution[0], resolution[1]//3))
-gt_sbs = cv2.VideoWriter(video_dir+'gt_sbs.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, (resolution[0], resolution[1]//3))
-pp = cv2.VideoWriter(video_dir+'pp.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, (resolution[0], resolution[1]//3))
-
-for idx in tqdm(range(nframes), desc=video_name):
+out = cv2.VideoWriter('./videos/stream_out.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, resolution)
+sbs = cv2.VideoWriter('./videos/stream_sbs_out.avi', cv2.VideoWriter_fourcc(*'DIVX'), fps, (resolution[0], resolution[1]//2))
+while True:
     _, frame = cap.read()
-    _, gt_frame = gt.read()
 
     frame_in = torch.unsqueeze(transform(frame), 0)
     frame_pred = model(frame_in)
@@ -67,19 +57,14 @@ for idx in tqdm(range(nframes), desc=video_name):
     out.write(frame_out_pp)
 
     frame_out_pp_pp = frame_out_pp.copy()
-    frame_out_pp = np.concatenate((frame, gt_frame, frame_out_pp), axis=1)
-    frame_out_pp = cv2.resize(frame_out_pp, (resolution[0], resolution[1]//3))
-    gt_sbs.write(frame_out_pp)
+    frame_out_pp = np.concatenate((frame, frame_out_pp), axis=1)
+    frame_out_pp = cv2.resize(frame_out_pp, (resolution[0], resolution[1]//2))
+    sbs.write(frame_out_pp)
 
-    frame_out = cv2.resize(frame_out, resolution)
-    frame_out = cv2.cvtColor(frame_out, cv2.COLOR_GRAY2BGR)
-    frame_out_pp_pp = np.concatenate((frame, frame_out, frame_out_pp_pp), axis=1)
-    frame_out_pp_pp = cv2.resize(frame_out_pp_pp, (resolution[0], resolution[1]//3))
-    pp.write(frame_out_pp_pp)
+    cv2.imshow('final', frame_out_pp)
+    cv2.waitKey(1)
 
 out.release()
-gt_sbs.release()
-pp.release()
+sbs.release()
 cap.release()
-gt.release()
 cv2.destroyAllWindows()

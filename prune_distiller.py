@@ -1,4 +1,3 @@
-#ssh -L 16006:127.0.0.1:16006 mb2775@ogg.cs.bath.ac.uk
 import torch
 import torchvision.transforms as transforms
 import torch.utils.tensorboard  as tensorboard
@@ -37,7 +36,7 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
     CE = torch.nn.BCEWithLogitsLoss()
     model.train()
     for step, pack in enumerate(train_loader, start=1):
-        compression_scheduler.on_minibatch_begin(epoch, step, total_steps, optimizer)
+        compression_scheduler.on_minibatch_begin(epoch, step, total_steps, optimizer) ## Call distiller on_minibatch_begin
         global_step = (epoch-1) * total_steps + step
         optimizer.zero_grad()
         imgs, gts, _, _, _, _ = pack
@@ -59,9 +58,9 @@ def train(train_loader, model, optimizer, epoch, writer, compression_scheduler=N
                                                                 optimizer=optimizer)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
-        compression_scheduler.before_parameter_optimization(epoch, step, total_steps, optimizer)
+        compression_scheduler.before_parameter_optimization(epoch, step, total_steps, optimizer) ## Call distiller before_parameter_optimization
         optimizer.step()
-        compression_scheduler.on_minibatch_end(epoch, step, total_steps, optimizer)
+        compression_scheduler.on_minibatch_end(epoch, step, total_steps, optimizer) ## Call distiller on_minibatch_end
 
 
         if step == 1 or step % 100 == 0 or step == total_steps:
@@ -112,14 +111,15 @@ train_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, 
 writer = tensorboard.SummaryWriter(os.path.join(save_dir, 'logs'))
 print('Dataset loaded successfully')
 
+## Load disitller scheduler
 compression_scheduler = distiller.file_config(model, optimizer, args.scheduler, None, None)
 
 for epoch in range(1, args.epoch+1):
 
-    compression_scheduler.on_epoch_begin(epoch)
+    compression_scheduler.on_epoch_begin(epoch) ## Call distiller on_epoch_begin
     print('Started epoch {:03d}/{:03d}'.format(epoch, args.epoch))
     train(train_loader, model, optimizer, epoch, writer, compression_scheduler)
-    compression_scheduler.on_epoch_end(epoch)
+    compression_scheduler.on_epoch_end(epoch) ## Call distiller on_epoch_begin
     torch.save(model.state_dict(), '{}/{}.pruned.pth'.format(save_dir, model.name))
     save_model_stats(model, stats_dir, epoch)
 
